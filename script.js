@@ -39,9 +39,14 @@ function updatePrecDisplay() {
 /* ══════════════════════════════════════════════════════════
    ДАВЛЕНИЕ НАСЫЩЕННОГО ПАРА
 
-   T >= 0 °С  →  Hardy (1998) ITS-90
-   T <  0 °С  →  Goff-Gratch (1946) WMO
+   Над ВОДОЙ (для RH, Td, W, Av, e, H, Tw):
+     T ≥ 0 °С  →  Hardy (1998) ITS-90
+     T < 0 °С  →  Buck (1981) переохлаждённая вода
+   Надо ЛЬДОМ (только для Tf):
+     T < 0 °С  →  Goff-Gratch (1946) WMO
 ══════════════════════════════════════════════════════════ */
+
+/* ---------- Hardy ITS-90: вода, 0…200 °С ---------- */
 
 var GW = [
     -2.8365744e3,
@@ -81,6 +86,26 @@ function desWater(Tc) {
     return esWater(Tc) * dlnE;
 }
 
+/* ---------- Buck 1981: переохлаждённая вода, −80…0 °С ---------- */
+
+function esBuckWater(Tc) {
+    return 6.1121 * Math.exp((18.678 - Tc / 234.5) * Tc / (257.14 + Tc));
+}
+
+function desBuckWater(Tc) {
+    var a = 18.678, b = 234.5, c = 257.14;
+    var num = (a - 2 * Tc / b) * (c + Tc) - (a * Tc - Tc * Tc / b);
+    var den = (c + Tc) * (c + Tc);
+    return esBuckWater(Tc) * num / den;
+}
+
+/* ---------- Универсальная: вода при любом T (−80…+200 °С) ---------- */
+
+function esW(Tc)  { return Tc >= 0 ? esWater(Tc)  : esBuckWater(Tc); }
+function desW(Tc) { return Tc >= 0 ? desWater(Tc) : desBuckWater(Tc); }
+
+/* ---------- Goff-Gratch 1946: лёд, −100…0 °С (только Tf!) ---------- */
+
 var T0GG = 273.16;
 
 function esIce(Tc) {
@@ -102,8 +127,10 @@ function desIce(Tc) {
     return esIce(Tc) * Math.LN10 * (d1 + d2 + d3);
 }
 
-function esF(Tc)  { return Tc >= 0 ? esWater(Tc) : esIce(Tc); }
-function desF(Tc) { return Tc >= 0 ? desWater(Tc) : desIce(Tc); }
+/* ---------- esF / desF: «главная» функция — ВСЕГДА вода ---------- */
+
+function esF(Tc)  { return esW(Tc); }
+function desF(Tc) { return desW(Tc); }
 
 /* ══════════════════════════════════════════════════════════
    ОБРАТНАЯ ЗАДАЧА: e → T  (бисекция + Ньютон)
@@ -136,7 +163,7 @@ function invertES(eTarget, esFn, desFn, lo, hi) {
 }
 
 function TdFromE(e) {
-    return invertES(e, esWater, desWater, -80, 200);
+    return invertES(e, esW, desW, -80, 200);
 }
 
 function TfFromE(e) {
@@ -189,7 +216,7 @@ function primaryToE(key, val, T, P) {
     var A;
     switch (key) {
         case "RH": return esF(T) * val / 100;
-        case "Td": return esWater(val);
+        case "Td": return esW(val);
         case "Tf": return esIce(val);
         case "Av": return val * (T + 273.15) / 216.679;
         case "W":  return val * P / (621.9907 + val);
