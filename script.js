@@ -38,15 +38,7 @@ function updatePrecDisplay() {
 
 /* ══════════════════════════════════════════════════════════
    ДАВЛЕНИЕ НАСЫЩЕННОГО ПАРА
-
-   Над ВОДОЙ (для RH, Td, W, Av, e, H, Tw):
-     T ≥ 0 °С  →  Hardy (1998) ITS-90
-     T < 0 °С  →  Buck (1981) переохлаждённая вода
-   Надо ЛЬДОМ (только для Tf):
-     T < 0 °С  →  Goff-Gratch (1946) WMO
 ══════════════════════════════════════════════════════════ */
-
-/* ---------- Hardy ITS-90: вода, 0…200 °С ---------- */
 
 var GW = [
     -2.8365744e3,
@@ -86,8 +78,6 @@ function desWater(Tc) {
     return esWater(Tc) * dlnE;
 }
 
-/* ---------- Buck 1981: переохлаждённая вода, −80…0 °С ---------- */
-
 function esBuckWater(Tc) {
     return 6.1121 * Math.exp((18.678 - Tc / 234.5) * Tc / (257.14 + Tc));
 }
@@ -99,12 +89,8 @@ function desBuckWater(Tc) {
     return esBuckWater(Tc) * num / den;
 }
 
-/* ---------- Универсальная: вода при любом T (−80…+200 °С) ---------- */
-
 function esW(Tc)  { return Tc >= 0 ? esWater(Tc)  : esBuckWater(Tc); }
 function desW(Tc) { return Tc >= 0 ? desWater(Tc) : desBuckWater(Tc); }
-
-/* ---------- Goff-Gratch 1946: лёд, −100…0 °С (только Tf!) ---------- */
 
 var T0GG = 273.16;
 
@@ -127,13 +113,11 @@ function desIce(Tc) {
     return esIce(Tc) * Math.LN10 * (d1 + d2 + d3);
 }
 
-/* ---------- esF / desF: «главная» функция — ВСЕГДА вода ---------- */
-
 function esF(Tc)  { return esW(Tc); }
 function desF(Tc) { return desW(Tc); }
 
 /* ══════════════════════════════════════════════════════════
-   ОБРАТНАЯ ЗАДАЧА: e → T  (бисекция + Ньютон)
+   ОБРАТНАЯ ЗАДАЧА: e → T
 ══════════════════════════════════════════════════════════ */
 
 function invertES(eTarget, esFn, desFn, lo, hi) {
@@ -209,7 +193,7 @@ function wetBulb(Tc, e, P) {
 }
 
 /* ══════════════════════════════════════════════════════════
-   ПЕРВИЧНЫЙ ПАРАМЕТР → e (парциальное давление)
+   ПЕРВИЧНЫЙ ПАРАМЕТР → e
 ══════════════════════════════════════════════════════════ */
 
 function primaryToE(key, val, T, P) {
@@ -229,7 +213,7 @@ function primaryToE(key, val, T, P) {
 }
 
 /* ══════════════════════════════════════════════════════════
-   ПОЛНЫЙ РАСЧЁТ ВСЕХ ПАРАМЕТРОВ
+   ПОЛНЫЙ РАСЧЁТ
 ══════════════════════════════════════════════════════════ */
 
 function calcAll(key, val, T, P) {
@@ -246,22 +230,16 @@ function calcAll(key, val, T, P) {
     var H     = isFinite(W) ? enthalpy(T, W) : NaN;
 
     return {
-        RH: RH,
-        Td: Td,
-        Tf: Tf,
-        Av: Av,
-        W:  W,
-        es: esVal,
-        e:  e,
-        Tw: Tw,
-        H:  H
+        RH: RH, Td: Td, Tf: Tf,
+        Av: Av, W: W, es: esVal,
+        e: e, Tw: Tw, H: H
     };
 }
 
 /* ══════════════════════════════════════════════════════════
    ПОГРЕШНОСТИ
    Центральные конечные разности 2-го порядка
-   σf = √( Σ (∂f/∂xi · σxi)² )
+   σf = sqrt( Σ (∂f/∂xi * σxi)² )
 ══════════════════════════════════════════════════════════ */
 
 var RKEYS = ["RH", "Td", "Tf", "Av", "W", "es", "e", "Tw", "H"];
@@ -272,20 +250,17 @@ function calcUnc(key, val, dVal, T, dT, P, dP) {
 
     var sources = [
         {
-            dx: dVal,
-            ref: val,
+            dx: dVal, ref: val,
             fp: function(hh) { return calcAll(key, val + hh, T, P); },
             fm: function(hh) { return calcAll(key, val - hh, T, P); }
         },
         {
-            dx: dT,
-            ref: T,
+            dx: dT, ref: T,
             fp: function(hh) { return calcAll(key, val, T + hh, P); },
             fm: function(hh) { return calcAll(key, val, T - hh, P); }
         },
         {
-            dx: dP,
-            ref: P,
+            dx: dP, ref: P,
             fp: function(hh) { return calcAll(key, val, T, P + hh); },
             fm: function(hh) { return calcAll(key, val, T, P - hh); }
         }
@@ -356,25 +331,31 @@ function validate() {
 
 /* ══════════════════════════════════════════════════════════
    ОТОБРАЖЕНИЕ РЕЗУЛЬТАТОВ
+   Исправлено: className не перезаписывается,
+   элементы u_* теперь существуют в HTML
 ══════════════════════════════════════════════════════════ */
 
 function setVal(id, v, digits) {
     var el = $(id);
+    if (!el) return;
     if (!isFinite(v)) {
         el.textContent = "—";
-        el.className   = "rv na";
+        el.classList.add("na");
     } else {
         el.textContent = v.toFixed(digits).replace(".", ",");
-        el.className   = "rv";
+        el.classList.remove("na");
     }
 }
 
 function setUnc(id, u, digits) {
     var el = $(id);
+    if (!el) return;
     if (isFinite(u) && u > 0) {
-        el.textContent = "\u00B1 " + u.toFixed(digits).replace(".", ",");
+        el.textContent = "\u00B1\u00A0" + u.toFixed(digits).replace(".", ",");
+        el.style.display = "";
     } else {
         el.textContent = "";
+        el.style.display = "none";
     }
 }
 
@@ -383,7 +364,7 @@ function clearResults() {
     for (j = 0; j < RKEYS.length; j++) {
         k = RKEYS[j];
         setVal("o_" + k, NaN, PRECISION);
-        setUnc("u_" + k, NaN, PRECISION);
+        setUnc("u_" + k, 0, PRECISION);
     }
 }
 
@@ -410,7 +391,6 @@ function render() {
     var dT   = Math.abs(parseFloat($("tu").value) || 0);
     var dP   = getDPmbar();
 
-    /* Проверка es > P */
     var esAtT = esF(T);
 
     if (key === "RH" && val > 100 && esAtT >= P) {
@@ -418,82 +398,81 @@ function render() {
         msg.innerHTML =
             "При заданной температуре (" + T.toFixed(1) + " °С) и давлении (" +
             (P / 10).toFixed(2) + " кПа) относительная влажность не может " +
-            "достигать " + val.toFixed(1) + " %, так как давление насыщенного пара (" +
-            esAtT.toFixed(2) + " мбар) превышает общее давление (" +
-            P.toFixed(2) + " мбар).";
+            "достигать " + val.toFixed(1) + " %.";
         clearResults();
         return;
     }
 
-    /* Расчёт */
     var res = calcAll(key, val, T, P);
 
     if (!res) {
         msg.className = "msgbox err";
-        msg.innerHTML = "Невозможно рассчитать параметры при заданных входных данных. Проверьте значения.";
+        msg.innerHTML = "Невозможно рассчитать параметры. Проверьте значения.";
         clearResults();
         return;
     }
 
-    /* Проверка e > P */
     if (res.e > P) {
         msg.className = "msgbox warn";
         msg.innerHTML =
-            "При заданной температуре и давлении парциальное давление пара (" +
-            res.e.toFixed(2) + " мбар) превышает общее давление (" +
-            P.toFixed(2) + " мбар). Расчёт невозможен.";
+            "Парциальное давление пара (" + res.e.toFixed(2) +
+            " мбар) превышает общее давление (" + P.toFixed(2) + " мбар).";
         clearResults();
         return;
     }
 
-    /* Проверка RH > 100 */
     if (res.RH > 100.05) {
         msg.className = "msgbox warn";
         msg.innerHTML =
-            "Расчётная относительная влажность (" + res.RH.toFixed(2) +
-            " %) превышает 100 %. При заданных параметрах воздух пересыщен — " +
-            "результаты могут быть некорректны.";
+            "Расчётная RH = " + res.RH.toFixed(2) +
+            " % > 100 %. Воздух пересыщен, результаты могут быть некорректны.";
         clearResults();
         return;
     }
 
-    /* Всё ок */
     msg.className = "msgbox";
     msg.innerHTML = "";
 
-    var j, k, d;
+    var j, k;
     for (j = 0; j < RKEYS.length; j++) {
         k = RKEYS[j];
-        d = PRECISION;
-        setVal("o_" + k, res[k], d);
+        setVal("o_" + k, res[k], PRECISION);
     }
 
-    /* Погрешности */
+    /* ── Погрешности ── */
     var hasUnc = (dVal > 0 || dT > 0 || dP > 0);
     if (hasUnc) {
         var unc = calcUnc(key, val, dVal, T, dT, P, dP);
         for (j = 0; j < RKEYS.length; j++) {
             k = RKEYS[j];
-            d = PRECISION;
-            setUnc("u_" + k, unc[k], d);
+            setUnc("u_" + k, unc[k], PRECISION);
         }
     } else {
         for (j = 0; j < RKEYS.length; j++) {
-            k = RKEYS[j];
-            setUnc("u_" + k, 0, PRECISION);
+            setUnc("u_" + RKEYS[j], 0, PRECISION);
+        }
+    }
+
+    /* ── Подсветка входного параметра ── */
+    var rows = document.querySelectorAll(".out-row[data-k]");
+    for (j = 0; j < rows.length; j++) {
+        if (rows[j].dataset.k === key) {
+            rows[j].classList.add("is-input");
+        } else {
+            rows[j].classList.remove("is-input");
         }
     }
 }
 
 /* ══════════════════════════════════════════════════════════
-   ВЫДЕЛЕНИЕ СТРОКИ РЕЗУЛЬТАТА
+   ВЫДЕЛЕНИЕ СТРОКИ (клик)
 ══════════════════════════════════════════════════════════ */
 
 function initHighlight() {
-    var rt = $("rt");
-    if (!rt) return;
+    var section = $("out-section");
+    if (!section) return;
 
-    var rows = rt.querySelectorAll("tr[data-k]");
+    var rows = section.querySelectorAll(".out-row[data-k]");
     var i;
 
     for (i = 0; i < rows.length; i++) {
@@ -502,7 +481,7 @@ function initHighlight() {
                 this.classList.remove("hl");
                 return;
             }
-            var all = rt.querySelectorAll("tr.hl");
+            var all = section.querySelectorAll(".out-row.hl");
             for (var j = 0; j < all.length; j++) {
                 all[j].classList.remove("hl");
             }
@@ -535,10 +514,21 @@ function initEvents() {
             el.addEventListener("change", function() { render(); });
         })(selectIds[i]);
     }
+
+    // Единицы первичного параметра
+    var PP_UNITS = {
+        RH: "%", Td: "°С", Tf: "°С",
+        Av: "г/м³", W: "г/кг", e: "мбар", Tw: "°С"
+    };
+
+    $("pp").addEventListener("change", function() {
+        var u = $("pp-unit");
+        if (u) u.textContent = PP_UNITS[this.value] || "";
+    });
 }
 
 /* ══════════════════════════════════════════════════════════
-   СТЕППЕР ТОЧНОСТИ — СОБЫТИЯ
+   СТЕППЕР ТОЧНОСТИ
 ══════════════════════════════════════════════════════════ */
 
 function initPrecision() {
@@ -560,22 +550,6 @@ function initPrecision() {
         }
     });
 }
-
-    // Единицы первичного параметра
-    var PP_UNITS = {
-        RH: "%",
-        Td: "°С",
-        Tf: "°С",
-        Av: "г/м³",
-        W:  "г/кг",
-        e:  "мбар",
-        Tw: "°С"
-    };
-
-    $("pp").addEventListener("change", function() {
-        var u = $("pp-unit");
-        if (u) u.textContent = PP_UNITS[this.value] || "";
-    });
 
 /* ══════════════════════════════════════════════════════════
    ЗАПУСК
