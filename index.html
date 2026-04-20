@@ -2,7 +2,6 @@
 <html lang="ru">
 <head>
 <meta charset="UTF-8"/>
-<!-- Критично для мобильного адаптива: viewport meta -->
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 <title>Калькулятор влажности воздуха</title>
 <link rel="stylesheet" href="styles.css"/>
@@ -10,89 +9,80 @@
 <body>
 <div class="page">
 
-  <!-- ═══════════════ ШАПКА ═══════════════ -->
   <div class="hdr">
-    <h1>
-      <img src="icons/droplet.svg" width="16" height="16" alt="💧">
-      Калькулятор влажности воздуха
-    </h1>
-    <p>9 параметров · автоматический расчёт погрешностей · диапазон −100…+200&nbsp;°С</p>
-
-    <!-- Бейджи используемых методов -->
+    <h1><img src="icons/droplet.svg" width="16" height="16" alt="💧">
+       Калькулятор влажности воздуха</h1>
+    <p>9 параметров · автоматический расчёт погрешностей · диапазон −100...+200 °С</p>
     <div class="badges">
-      <span class="badge">Hardy ITS-90 (вода 0…200 °С)</span>
-      <span class="badge">Goff-Gratch (лёд −100…0 °С)</span>
+      <span class="badge">Hardy ITS-90 (вода 0...200 °С)</span>
+      <span class="badge">Goff-Gratch (лёд −100...0 °С)</span>
       <span class="badge">Бисекция + Ньютон</span>
       <span class="badge">Конечные разности 2-го порядка</span>
     </div>
+    <div class="prec-pill">
+      <span class="prec-icon">⚙</span>
+      <span class="prec-text">Знаков после запятой</span>
+      <button id="dec-prec" type="button">−</button>
+      <span id="prec-display">3</span>
+      <button id="inc-prec" type="button">+</button>
+    </div>
   </div>
 
-  <!-- ═══════════════ КАРТОЧКА ═══════════════ -->
   <div class="card">
 
-    <!-- ─── БЛОК ВВОДА ─── -->
     <div class="input-section">
-
-      <!-- Заголовки столбцов (скрываются на мобильных) -->
-      <div class="input-row input-row--header">
-        <div class="input-label"></div>
-        <div class="input-val col-hdr">Значение</div>
-        <div class="input-pm"></div>
-        <div class="input-unc col-hdr">Погрешность</div>
-        <div class="input-unit col-hdr">Ед. изм.</div>
+      <div class="in-row in-row--hdr">
+        <div class="in-label"></div>
+        <div class="in-val col-h">ЗНАЧЕНИЕ</div>
+        <div class="in-pm"></div>
+        <div class="in-unc col-h">ПОГРЕШНОСТЬ</div>
+        <div class="in-unit col-h">ЕД. ИЗМ.</div>
       </div>
 
-      <!-- Первичный параметр (выбор через select) -->
-      <div class="input-row">
-        <div class="input-label">
+      <div class="in-row">
+        <div class="in-label">
           <select id="pp">
-            <option value="RH">Относительная влажность, RH</option>
+            <option value="RH">Относительная влажн...</option>
             <option value="Td">Темп. точки росы, Td</option>
-            <option value="Tf">Точка росы/инея (T&lt;0), Tf</option>
-            <option value="Av">Абсолютная влажность, ρv</option>
+            <option value="Tf">Точка росы/инея, Tf</option>
+            <option value="Av">Абсолютная влажн., ρv</option>
             <option value="W">Влагосодержание, W</option>
-            <option value="e">Парц. давление пара, e</option>
-            <option value="Tw">Темп. влажн. термометра, Tw</option>
+            <option value="e">Парц. давление, e</option>
+            <option value="Tw">Темп. влажн. терм., Tw</option>
           </select>
         </div>
-        <div class="input-val">
+        <div class="in-val">
           <input id="pv" type="number" step="any" value="60"/>
         </div>
-        <div class="input-pm">±</div>
-        <div class="input-unc">
+        <div class="in-pm">±</div>
+        <div class="in-unc">
           <input id="pu" type="number" step="any" value="0" min="0"/>
         </div>
-        <div class="input-unit" id="pp-unit">%</div>
+        <div class="in-unit" id="pp-unit">%</div>
       </div>
 
-      <!-- Температура воздуха -->
-      <div class="input-row">
-        <div class="input-label">
-          <span>Температура воздуха, T</span>
-        </div>
-        <div class="input-val">
+      <div class="in-row">
+        <div class="in-label"><span>Температура воздуха, T</span></div>
+        <div class="in-val">
           <input id="tv" type="number" step="any" value="25"/>
         </div>
-        <div class="input-pm">±</div>
-        <div class="input-unc">
+        <div class="in-pm">±</div>
+        <div class="in-unc">
           <input id="tu" type="number" step="any" value="0" min="0"/>
         </div>
-        <div class="input-unit">°С</div>
+        <div class="in-unit">°С</div>
       </div>
 
-      <!-- Атмосферное давление (с выбором единиц) -->
-      <div class="input-row">
-        <div class="input-label">
-          <span>Атм. давление, P</span>
-        </div>
-        <div class="input-val">
+      <div class="in-row">
+        <div class="in-label"><span>Атм. давление, P</span></div>
+        <div class="in-val">
           <input id="prv" type="number" step="any" value="101.325"/>
         </div>
-        <div class="input-pm">±</div>
-        <div class="input-unc">
+        <div class="in-pm">±</div>
+        <div class="in-unc">
           <input id="prc" type="number" step="any" value="0" min="0"/>
         </div>
-        <div class="input-unit">
+        <div class="in-unit">
           <select id="pru">
             <option value="kPa" selected>кПа</option>
             <option value="mbar">мбар</option>
@@ -102,101 +92,95 @@
           </select>
         </div>
       </div>
-
-      <!-- Степпер: количество знаков после запятой -->
-      <div class="input-row input-row--precision">
-        <div class="input-label">
-          <span>Знаков после запятой</span>
-        </div>
-        <div class="precision-control">
-          <button id="dec-prec" type="button" aria-label="Уменьшить">−</button>
-          <span id="prec-display">3</span>
-          <button id="inc-prec" type="button" aria-label="Увеличить">+</button>
-        </div>
-      </div>
-
     </div>
 
-    <!-- ─── РАЗДЕЛИТЕЛЬ ─── -->
-    <div class="sep"></div>
-
-    <!-- ─── БЛОК СООБЩЕНИЙ (ошибки / предупреждения) ─── -->
+    <div class="sep-blue"></div>
     <div id="msg" class="msgbox"></div>
 
-    <!-- ─── ТАБЛИЦА РЕЗУЛЬТАТОВ ─── -->
-    <div class="results-wrap">
-      <table class="rtbl" id="rt">
-      <tbody>
-        <tr data-k="RH">
-          <td class="rn">Относительная влажность, RH</td>
-          <td class="ru">%</td>
-          <td class="rv" id="o_RH">—</td>
-          <td class="rc" id="u_RH"></td>
-        </tr>
-        <tr data-k="Td">
-          <td class="rn">Температура точки росы, T<sub>d</sub></td>
-          <td class="ru">°С</td>
-          <td class="rv" id="o_Td">—</td>
-          <td class="rc" id="u_Td"></td>
-        </tr>
-        <tr data-k="Tf">
-          <td class="rn">Точка росы/инея, T<sub>f</sub></td>
-          <td class="ru">°С</td>
-          <td class="rv" id="o_Tf">—</td>
-          <td class="rc" id="u_Tf"></td>
-        </tr>
-        <tr data-k="Av">
-          <td class="rn">Абсолютная влажность, ρ<sub>v</sub></td>
-          <td class="ru">г/м³</td>
-          <td class="rv" id="o_Av">—</td>
-          <td class="rc" id="u_Av"></td>
-        </tr>
-        <tr data-k="W">
-          <td class="rn">Влагосодержание, W</td>
-          <td class="ru">г/кг</td>
-          <td class="rv" id="o_W">—</td>
-          <td class="rc" id="u_W"></td>
-        </tr>
-        <tr data-k="es">
-          <td class="rn">Давление насыщ. пара, e<sub>s</sub></td>
-          <td class="ru">мбар</td>
-          <td class="rv" id="o_es">—</td>
-          <td class="rc" id="u_es"></td>
-        </tr>
-        <tr data-k="e">
-          <td class="rn">Парциальное давление пара, e</td>
-          <td class="ru">мбар</td>
-          <td class="rv" id="o_e">—</td>
-          <td class="rc" id="u_e"></td>
-        </tr>
-        <tr data-k="Tw">
-          <td class="rn">Темп. влажного термометра, T<sub>w</sub></td>
-          <td class="ru">°С</td>
-          <td class="rv" id="o_Tw">—</td>
-          <td class="rc" id="u_Tw"></td>
-        </tr>
-        <tr data-k="H">
-          <td class="rn">Энтальпия, H</td>
-          <td class="ru">кДж/кг</td>
-          <td class="rv" id="o_H">—</td>
-          <td class="rc" id="u_H"></td>
-        </tr>
-      </tbody>
-      </table>
-    </div>
+   <div class="out-section" id="out-section">
 
-    <!-- ─── ПОДВАЛ: ССЫЛКИ НА МЕТОДИКИ ─── -->
+  <div class="out-row out-row--hdr">
+    <div class="col-h">ПАРАМЕТР</div>
+    <div class="col-h">ЗНАЧЕНИЕ</div>
+    <div class="col-h">ПОГРЕШНОСТЬ</div>
+    <div class="col-h">ЕД. ИЗМ.</div>
+  </div>
+
+  <div class="out-row" data-k="RH">
+    <div class="out-name">Относительная влажность, RH</div>
+    <div class="out-val"><span class="oval" id="o_RH">—</span></div>
+    <div class="out-unc"><span class="ounc" id="u_RH"></span></div>
+    <div class="out-unit">%</div>
+  </div>
+
+  <div class="out-row" data-k="Td">
+    <div class="out-name">Температура точки росы, T<sub>d</sub></div>
+    <div class="out-val"><span class="oval" id="o_Td">—</span></div>
+    <div class="out-unc"><span class="ounc" id="u_Td"></span></div>
+    <div class="out-unit">°С</div>
+  </div>
+
+  <div class="out-row" data-k="Tf">
+    <div class="out-name">Точка росы/инея, T<sub>f</sub></div>
+    <div class="out-val"><span class="oval" id="o_Tf">—</span></div>
+    <div class="out-unc"><span class="ounc" id="u_Tf"></span></div>
+    <div class="out-unit">°С</div>
+  </div>
+
+  <div class="out-row" data-k="Av">
+    <div class="out-name">Абсолютная влажность, ρ<sub>v</sub></div>
+    <div class="out-val"><span class="oval" id="o_Av">—</span></div>
+    <div class="out-unc"><span class="ounc" id="u_Av"></span></div>
+    <div class="out-unit">г/м³</div>
+  </div>
+
+  <div class="out-row" data-k="W">
+    <div class="out-name">Влагосодержание, W</div>
+    <div class="out-val"><span class="oval" id="o_W">—</span></div>
+    <div class="out-unc"><span class="ounc" id="u_W"></span></div>
+    <div class="out-unit">г/кг</div>
+  </div>
+
+  <div class="out-row" data-k="es">
+    <div class="out-name">Давление насыщ. пара, e<sub>s</sub></div>
+    <div class="out-val"><span class="oval" id="o_es">—</span></div>
+    <div class="out-unc"><span class="ounc" id="u_es"></span></div>
+    <div class="out-unit">мбар</div>
+  </div>
+
+  <div class="out-row" data-k="e">
+    <div class="out-name">Парциальное давление пара, e</div>
+    <div class="out-val"><span class="oval" id="o_e">—</span></div>
+    <div class="out-unc"><span class="ounc" id="u_e"></span></div>
+    <div class="out-unit">мбар</div>
+  </div>
+
+  <div class="out-row" data-k="Tw">
+    <div class="out-name">Темп. влажного термометра, T<sub>w</sub></div>
+    <div class="out-val"><span class="oval" id="o_Tw">—</span></div>
+    <div class="out-unc"><span class="ounc" id="u_Tw"></span></div>
+    <div class="out-unit">°С</div>
+  </div>
+
+  <div class="out-row" data-k="H">
+    <div class="out-name">Энтальпия, H</div>
+    <div class="out-val"><span class="oval" id="o_H">—</span></div>
+    <div class="out-unc"><span class="ounc" id="u_H"></span></div>
+    <div class="out-unit">кДж/кг</div>
+  </div>
+</div>
+
     <div class="foot">
-      <p><b>Вода (0…200 °С):</b> Hardy (1998) ITS-90, погрешность &lt;0.005 мбар</p>
-      <p><b>Лёд (−100…0 °С):</b> Goff-Gratch (1946) WMO, погрешность &lt;0.01 мбар</p>
+      <p><b>Вода (0...200 °С):</b> Hardy (1998) ITS-90, погрешность &lt;0.005 мбар</p>
+      <p><b>Лёд (−100...0 °С):</b> Goff-Gratch (1946) WMO, погрешность &lt;0.01 мбар</p>
       <p><b>Точка росы:</b> бисекция + Ньютон, точность 10⁻⁹ °С</p>
       <p><b>Погрешности:</b> центральные разности + закон сложения дисперсий</p>
       <p><b>Влажный термометр:</b> ур-ние Sprung, A=6.62×10⁻⁴, итерация Ньютона</p>
       <p><b>Источники:</b> Hardy 1998 · Goff&amp;Gratch 1946 · ASHRAE 2017</p>
     </div>
 
-  </div><!-- /.card -->
-</div><!-- /.page -->
+  </div>
+</div>
 
 <script src="script.js"></script>
 </body>
