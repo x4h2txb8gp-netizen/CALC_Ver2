@@ -14,6 +14,24 @@ var TO_MBAR = {
     kgcm2: function(v) { return v * 980.665; }
 };
 
+/* обратная конверсия: мбар → выбранная единица */
+var FROM_MBAR = {
+    mbar:  function(v) { return v; },
+    kPa:   function(v) { return v / 10; },
+    mmHg:  function(v) { return v / 1.333224; },
+    atm:   function(v) { return v / 1013.25; },
+    kgcm2: function(v) { return v / 980.665; }
+};
+
+/* русские названия единиц давления */
+var UNIT_LABELS = {
+    mbar:  "мбар",
+    kPa:   "кПа",
+    mmHg:  "мм рт.ст.",
+    atm:   "атм",
+    kgcm2: "кг/см²"
+};
+
 function getPmbar() {
     return TO_MBAR[$("pru").value](parseFloat($("prv").value));
 }
@@ -434,10 +452,22 @@ function render() {
     msg.innerHTML = "";
 
     var j, k;
+    var pu     = $("pru").value;
+    var convFn = FROM_MBAR[pu];
+    var uLabel = UNIT_LABELS[pu];
+
     for (j = 0; j < RKEYS.length; j++) {
         k = RKEYS[j];
-        setVal("o_" + k, res[k], PRECISION);
+        if (k === "es" || k === "e") {
+            setVal("o_" + k, convFn(res[k]), PRECISION);
+        } else {
+            setVal("o_" + k, res[k], PRECISION);
+        }
     }
+
+    /* обновить подписи единиц */
+    if ($("unit_es")) $("unit_es").textContent = uLabel;
+    if ($("unit_e"))  $("unit_e").textContent  = uLabel;
 
     /* ── Погрешности ── */
     var hasUnc = (dVal > 0 || dT > 0 || dP > 0);
@@ -445,7 +475,11 @@ function render() {
         var unc = calcUnc(key, val, dVal, T, dT, P, dP);
         for (j = 0; j < RKEYS.length; j++) {
             k = RKEYS[j];
-            setUnc("u_" + k, unc[k], PRECISION);
+            if (k === "es" || k === "e") {
+                setUnc("u_" + k, convFn(unc[k]), PRECISION);
+            } else {
+                setUnc("u_" + k, unc[k], PRECISION);
+            }
         }
     } else {
         for (j = 0; j < RKEYS.length; j++) {
