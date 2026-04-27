@@ -411,7 +411,6 @@ body {
 
 /* ================================================================
    TABLET  (701 — 1024 px)
-   Сетки чуть сжимаются, label уже, но структура сохраняется
    ================================================================ */
 @media (max-width: 1024px) and (min-width: 701px) {
 
@@ -420,9 +419,12 @@ body {
   .hdr { padding: 24px 24px 20px; }
   .hdr h1 { font-size: 20px; }
 
+  /* ── Скрываем бейджи методов ── */
+  .badges { display: none; }
+
   .card { padding: 24px 20px 20px; }
 
-  /* Input: label сужаем */
+  /* ── Input ── */
   .in-row {
     grid-template-columns: 230px 120px 24px 120px 72px;
     gap: 10px;
@@ -431,46 +433,87 @@ body {
   .in-label select,
   .in-label span { font-size: 14px; }
 
-.input-section input[type="number"],
-.input-section select,
-.in-unit select {
-  font-family: inherit;
-  font-size: 15px;
-  font-weight: 500;
-  color: #1f2937;
-  height: auto;
-
-  padding: 10px 16px;          /* ← как у .oval */
-  border: 1px solid #d1d5db;
-  border-radius: 10px;
-  background: #fff;
-  outline: none;
-  transition: border-color 0.15s, box-shadow 0.15s;
-}
-
-.input-section input[type="number"]
-{
-  width: 120px;
-}
-
-
-  /* Output: label сужаем */
-  .out-row {
-    grid-template-columns: 230px 154px 120px 72px;
-    gap: 10px;
+  .input-section input[type="number"],
+  .input-section select,
+  .in-unit select {
+    font-family: inherit;
+    font-size: 15px;
+    font-weight: 500;
+    color: #1f2937;
+    height: auto;
+    padding: 10px 16px;
+    border: 1px solid #d1d5db;
+    border-radius: 10px;
+    background: #fff;
+    outline: none;
+    transition: border-color 0.15s, box-shadow 0.15s;
   }
 
-  .out-name { font-size: 14px; }
-  .oval { padding: 8px 14px; font-size: 14px; min-width: 100px; }
-  .ounc { padding: 8px 12px; font-size: 14px; }
-  .out-unit { font-size: 14px; }
+  .input-section input[type="number"] { width: 120px; }
+
+
+
+  .out-row {
+    display: grid;
+    grid-template-columns: auto auto 1fr auto;
+    grid-template-areas:
+      "lbl val unit unc"
+      "name name name name";
+    column-gap: 10px;
+    row-gap: 6px;
+    padding: 12px 16px;
+    margin-bottom: 8px;
+    background: #f9fafb;
+    border: 1px solid #e5e7eb;
+    border-radius: 10px;
+  }
+
+  .out-row::before {
+    content: attr(data-short) " =";
+    grid-area: lbl;
+    font-size: 15px;
+    font-weight: 700;
+    color: #1f2937;
+    align-self: center;
+    font-variant-numeric: tabular-nums;
+  }
+
+
+  .out-row--hdr{
+    display: none;
+  }
+
+  .out-val  { grid-area: val; }
+  .out-unit { grid-area: unit; text-align: left; align-self: center; margin: 0; font-size: 14px; color: #4b5563; }
+  .out-unc  { grid-area: unc; justify-content: flex-end; }
+  .out-name { grid-area: name; font-size: 12px; color: #6b7280; font-weight: 500; line-height: 1.3; }
+
+  .oval {
+    min-width: 0;
+    padding: 6px 12px;
+    font-size: 15px;
+    background: #fff;
+  }
+
+  .ounc {
+    width: auto;
+    padding: 6px 10px;
+    font-size: 13px;
+    background: #fff;
+  }
+
+  .out-row.is-input { opacity: 0.55; }
+  .out-row.hl {
+    background: #d6efff;
+    border-color: #3b82f6;
+    border-left: 4px solid #1f2937;
+  }
 
   .foot { gap: 4px 24px; }
 }
 
 /* ================================================================
    MOBILE  (≤ 700 px)
-   Карточная раскладка: каждый ввод/вывод — отдельный блок
    ================================================================ */
 @media (max-width: 700px) {
 
@@ -485,8 +528,8 @@ body {
   .hdr h1 { font-size: 17px; }
   .hdr > p { font-size: 13px; margin-bottom: 12px; }
 
-  .badges { gap: 6px; margin-bottom: 12px; }
-  .badge { font-size: 11px; padding: 4px 10px; }
+  /* ── Скрываем бейджи методов ── */
+  .badges { display: none; }
 
   .prec-pill { height: 40px; padding-left: 10px; }
   .prec-text { font-size: 12px; margin-right: 8px; }
@@ -499,11 +542,11 @@ body {
     border-radius: 0 0 14px 14px;
   }
 
-  /* ── Input: 2 колонки, label на всю ширину ── */
+    /* ── Input: 3 колонки — значение | ед.изм. | погрешность ── */
   .in-row--hdr { display: none; }
 
   .in-row {
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: 1fr auto 1fr;
     gap: 6px;
     padding: 10px 0;
     border-bottom: 1px solid #f3f4f6;
@@ -523,8 +566,44 @@ body {
 
   .in-pm { display: none; }
 
-  .in-val { grid-column: 1; }
-  .in-unc { grid-column: 2; }
+  .in-val {
+    grid-column: 1;
+    grid-row: 2;
+  }
+  .in-unc {
+    grid-column: 3;
+    grid-row: 2;
+  }
+
+  .in-unit {
+    grid-column: 2;
+    grid-row: 2;
+    align-self: end;
+    text-align: center;
+    font-size: 14px;
+    font-weight: 500;
+    color: #6b7280;
+    padding: 0 4px 10px;
+  }
+
+  .in-unit_2{
+    grid-column: 2;
+    grid-row: 2;
+    align-self: end;
+    text-align: center;
+    font-size: 14px;
+    font-weight: 500;
+    color: #6b7280;
+    padding: 0 4px 0px;
+  }
+
+  .in-unit select {
+    width: auto;
+    min-width: 70px;
+    height: 44px;
+    font-size: 13px;
+    padding: 0 8px;
+  }
 
   .in-val::before {
     content: "Знач.";
@@ -548,21 +627,15 @@ body {
     margin-bottom: 3px;
   }
 
-  .in-unit {
-    grid-column: 1 / -1;
-    text-align: left;
-    font-size: 13px;
-    color: #6b7280;
-    padding-left: 2px;
-  }
-
   .input-section input[type="number"],
   .input-section select,
   .in-unit select {
     height: 44px;
     font-size: 15px;
     border-radius: 8px;
+    width: 100%;
   }
+
 
   /* ── Separator ── */
   .sep-blue { margin: 16px 0 18px; }
@@ -571,60 +644,86 @@ body {
   .msgbox { font-size: 12px; }
   .msgbox.err, .msgbox.warn { padding: 10px 12px; border-radius: 8px; }
 
-  /* ── Output: карточки ── */
+  /* ── Output: карточки в 2 строки ── */
   .out-row--hdr { display: none; }
 
   .out-row {
-    grid-template-columns: 1fr;
-    gap: 6px;
-    padding: 12px 0;
-    border-bottom: 1px solid #f0f1f3;
+    display: grid;
+    grid-template-columns: auto auto 1fr auto;
+    grid-template-areas:
+      "lbl val unit unc"
+      "name name name name";
+    column-gap: 8px;
+    row-gap: 4px;
+    padding: 10px 12px;
+    margin-bottom: 8px;
+    background: #f9fafb;
+    border: 1px solid #e5e7eb;
+    border-radius: 10px;
+    border-bottom: 1px solid #e5e7eb;
   }
 
-  .out-name {
+  .out-row::before {
+    content: attr(data-short) " =";
+    grid-area: lbl;
+    font-size: 14px;
+    font-weight: 700;
+    color: #1f2937;
+    align-self: center;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+  }
+
+  .out-val  { grid-area: val; display: block; }
+  .out-unit {
+    grid-area: unit;
+    text-align: left;
+    align-self: center;
+    margin: 0;
+    padding: 0;
     font-size: 13px;
-    font-weight: 600;
-    color: #374151;
+    color: #4b5563;
+    white-space: nowrap;
   }
-
-  /* Значение + погрешность в одну строку */
-  .out-val,
   .out-unc {
-    display: inline;
-    
+    grid-area: unc;
+    justify-content: flex-end;
+    align-self: center;
   }
-
-  /* Обертка для значения и погрешности */
-  .out-row > .out-val,
-  .out-row > .out-unc {
-    display: inline;
+  .out-name {
+    grid-area: name;
+    font-size: 11.5px;
+    color: #6b7280;
+    font-weight: 500;
+    line-height: 1.3;
+    margin-top: 2px;
   }
 
   .oval {
-    padding: 8px 12px;
-    font-size: 15px;
-    min-width: 80px;
-    border-radius: 8px;
+    min-width: 0;
+    padding: 5px 10px;
+    font-size: 14px;
+    background: #fff;
+    border-radius: 6px;
+
   }
 
   .ounc {
-    padding: 8px 10px;
-    font-size: 13px;
-    border-radius: 8px;
-    margin-left: 6px;
+    width: auto;
+    padding: 4px 8px;
+    font-size: 12px;
+    background: #fff;
+    border-radius: 6px;
+    margin: 0;
   }
 
-  .out-unit {
-    text-align: left;
-    font-size: 12px;
-    color: #6b7280;
-    padding-left: 2px;
-  }
+  .out-row.is-input { opacity: 0.55; }
 
   .out-row.hl {
-    border-left: 3px solid #000;
-    padding-left: 4px;
-    border-radius: 8px;
+    background: #d6efff;
+    border-color: #3b82f6;
+    border-left: 4px solid #1f2937;
+    padding-left: 9px;
   }
 
   /* ── Footer ── */
@@ -639,14 +738,11 @@ body {
 
 /* ================================================================
    TINY PHONE  (≤ 380 px)
-   Дополнительная подстройка для узких экранов
    ================================================================ */
 @media (max-width: 380px) {
 
   .hdr h1 { font-size: 15px; }
   .hdr > p { font-size: 12px; }
-
-  .badge { font-size: 10px; padding: 3px 8px; }
 
   .prec-pill { height: 36px; }
   .prec-text { font-size: 11px; }
@@ -658,9 +754,76 @@ body {
   .input-section input[type="number"],
   .input-section select { height: 40px; font-size: 14px; }
 
-  .oval { padding: 6px 10px; font-size: 14px; min-width: 70px; }
-  .ounc { padding: 6px 8px; font-size: 12px; }
+  .out-row {
+    padding: 8px 10px;
+    column-gap: 6px;
+  }
 
-  .out-name { font-size: 12px; }
-  .out-unit { font-size: 11px; }
+  .out-row--hdr{
+    display: none;
+  }
+
+  .out-row::before { font-size: 13px; }
+  .oval { padding: 4px 8px; font-size: 13px; }
+  .ounc { padding: 3px 6px; font-size: 11px; }
+  .out-unit { font-size: 12px; }
+  .out-name { font-size: 11px; }
+}
+
+/* ── Chart ── */
+.chart-wrap {
+  margin-top: 24px;
+  padding-top: 20px;
+  border-top: 1px solid #e5e7eb;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.chart-title {
+  font-size: 15px;
+  font-weight: 700;
+  color: #1e3a5f;
+  margin: 0 0 12px;
+  text-align: center;
+}
+
+.chart-box {
+  width: 100%;
+  max-width: 640px;
+  position: relative;
+}
+
+@media (max-width: 1024px) and (min-width: 701px) {
+  .chart-box {
+    max-width: 100%;
+  }
+  .chart-title {
+    font-size: 14px;
+  }
+}
+
+@media (max-width: 700px) {
+  .chart-wrap {
+    margin-top: 16px;
+    padding-top: 14px;
+  }
+  .chart-box {
+    max-width: 100%;
+    margin: 0 -4px;          /* чуть шире card-padding */
+  }
+  .chart-title {
+    font-size: 13px;
+    margin-bottom: 8px;
+  }
+}
+
+@media (max-width: 380px) {
+  .chart-wrap {
+    margin-top: 12px;
+    padding-top: 10px;
+  }
+  .chart-title {
+    font-size: 12px;
+  }
 }
