@@ -252,6 +252,7 @@ function calcAll(key, val, T, P) {
         Av: Av, W: W, es: esVal,
         e: e, Tw: Tw, H: H
     };
+
 }
 
 /* ══════════════════════════════════════════════════════════
@@ -349,8 +350,6 @@ function validate() {
 
 /* ══════════════════════════════════════════════════════════
    ОТОБРАЖЕНИЕ РЕЗУЛЬТАТОВ
-   Исправлено: className не перезаписывается,
-   элементы u_* теперь существуют в HTML
 ══════════════════════════════════════════════════════════ */
 
 function setVal(id, v, digits) {
@@ -465,7 +464,7 @@ function render() {
         }
     }
 
-    /* обновить подписи единиц */
+   
     if ($("unit_es")) $("unit_es").textContent = uLabel;
     if ($("unit_e"))  $("unit_e").textContent  = uLabel;
 
@@ -496,6 +495,10 @@ function render() {
             rows[j].classList.remove("is-input");
         }
     }
+
+    /* ── График ── */
+    updatePsyChart(T, res);
+
 }
 
 /* ══════════════════════════════════════════════════════════
@@ -559,6 +562,19 @@ function initEvents() {
         var u = $("pp-unit");
         if (u) u.textContent = PP_UNITS[this.value] || "";
     });
+
+        /* Перерисовка графика при ресайзе */
+    var resizeTimer;
+    window.addEventListener('resize', function() {
+        clearTimeout(resizeTimer);
+        resizeTimer = setTimeout(function() {
+            if (psyChart) {
+                psyChart.destroy();
+                psyChart = null;
+                render();
+            }
+        }, 250);
+    });
 }
 
 /* ══════════════════════════════════════════════════════════
@@ -585,6 +601,293 @@ function initPrecision() {
     });
 }
 
+
+/* ═══════════════════════════════════════
+   Психрометрический график es(T)
+   Адаптивный: desktop / tablet / mobile
+   ═══════════════════════════════════════ */
+
+var psyChart = null;
+
+function getChartConfig() {
+    var w = window.innerWidth;
+
+    if (w <= 380) {
+        return {
+            aspectRatio: 1.0,
+            pointRadius: 6,
+            pointHover: 8,
+            lineWidth: 2,
+            dashWidth: 1,
+            axisFont: 9,
+            titleFont: 10,
+            tickFont: 8,
+            legendFont: 9,
+            legendPad: 8,
+            stepX: 50,
+            showAxisTitleY: false,
+            showAxisTitleX: true,
+            tooltipTitle: 11,
+            tooltipBody: 10,
+            tooltipPad: 6
+        };
+    }
+    if (w <= 700) {
+        return {
+            aspectRatio: 1.1,
+            pointRadius: 7,
+            pointHover: 9,
+            lineWidth: 2,
+            dashWidth: 1.2,
+            axisFont: 10,
+            titleFont: 11,
+            tickFont: 9,
+            legendFont: 10,
+            legendPad: 10,
+            stepX: 40,
+            showAxisTitleY: true,
+            showAxisTitleX: true,
+            tooltipTitle: 12,
+            tooltipBody: 11,
+            tooltipPad: 8
+        };
+    }
+    if (w <= 1024) {
+        return {
+            aspectRatio: 1.5,
+            pointRadius: 8,
+            pointHover: 10,
+            lineWidth: 2.5,
+            dashWidth: 1.5,
+            axisFont: 11,
+            titleFont: 12,
+            tickFont: 10,
+            legendFont: 11,
+            legendPad: 12,
+            stepX: 30,
+            showAxisTitleY: true,
+            showAxisTitleX: true,
+            tooltipTitle: 12,
+            tooltipBody: 11,
+            tooltipPad: 8
+        };
+    }
+    return {
+        aspectRatio: 1.8,
+        pointRadius: 9,
+        pointHover: 12,
+        lineWidth: 2.5,
+        dashWidth: 1.5,
+        axisFont: 11,
+        titleFont: 13,
+        tickFont: 11,
+        legendFont: 12,
+        legendPad: 14,
+        stepX: 20,
+        showAxisTitleY: true,
+        showAxisTitleX: true,
+        tooltipTitle: 13,
+        tooltipBody: 12,
+        tooltipPad: 10
+    };
+}
+
+function updatePsyChart(T, res) {
+    if (!res) return;
+
+    var eKpa  = res.e  / 10;
+    var esKpa = res.es / 10;
+    var TdVal = isFinite(res.Td) ? res.Td : null;
+    var cfg   = getChartConfig();
+
+    /* ── Кривая насыщения ── */
+    var curve = [];
+    var t;
+    for (t = -100; t <= 200; t += 1) {
+        curve.push({ x: t, y: esF(t) / 10 });
+    }
+
+    /* ── Датасеты ── */
+    var datasets = [
+        {
+            label: 'Кривая насыщения es(T)',
+            data: curve,
+            showLine: true,
+            borderColor: '#3b82f6',
+            backgroundColor: 'rgba(59,130,246,0.08)',
+            borderWidth: cfg.lineWidth,
+            pointRadius: 0,
+            pointHitRadius: 0,
+            fill: true,
+            tension: 0.4,
+            order: 4
+        }
+    ];
+
+    if (TdVal !== null) {
+        datasets.push({
+            label: '_hline',
+            data: [
+                { x: TdVal, y: eKpa },
+                { x: T,     y: eKpa }
+            ],
+            showLine: true,
+            borderColor: '#94a3b8',
+            borderWidth: cfg.dashWidth,
+            borderDash: [6, 4],
+            pointRadius: 0,
+            pointHitRadius: 0,
+            fill: false,
+            order: 3
+        });
+    }
+
+    if (Math.abs(esKpa - eKpa) > 0.001) {
+        datasets.push({
+            label: '_vline',
+            data: [
+                { x: T, y: eKpa  },
+                { x: T, y: esKpa }
+            ],
+            showLine: true,
+            borderColor: '#94a3b8',
+            borderWidth: cfg.dashWidth,
+            borderDash: [4, 3],
+            pointRadius: 0,
+            pointHitRadius: 0,
+            fill: false,
+            order: 3
+        });
+    }
+
+    datasets.push({
+        label: 'Текущее (' + T.toFixed(1) + ' °C; ' + eKpa.toFixed(3) + ' кПа)',
+        data: [{ x: T, y: eKpa }],
+        pointRadius: cfg.pointRadius,
+        pointHoverRadius: cfg.pointHover,
+        pointBackgroundColor: '#ef4444',
+        pointBorderColor: '#fff',
+        pointBorderWidth: 2,
+        showLine: false,
+        order: 1
+    });
+
+    if (TdVal !== null) {
+        datasets.push({
+            label: 'Точка росы (' + TdVal.toFixed(1) + ' °C; ' + eKpa.toFixed(3) + ' кПа)',
+            data: [{ x: TdVal, y: eKpa }],
+            pointRadius: cfg.pointRadius,
+            pointHoverRadius: cfg.pointHover,
+            pointBackgroundColor: '#22c55e',
+            pointBorderColor: '#fff',
+            pointBorderWidth: 2,
+            pointStyle: 'triangle',
+            showLine: false,
+            order: 1
+        });
+    }
+
+    var yMax = Math.ceil(esKpa * 1.4);
+    if (yMax < 1) yMax = 1;
+
+    var chartOptions = {
+        responsive: true,
+        maintainAspectRatio: true,
+        aspectRatio: cfg.aspectRatio,
+        animation: { duration: 300 },
+        interaction: {
+            mode: 'nearest',
+            intersect: true
+        },
+        plugins: {
+            legend: {
+                position: 'bottom',
+                labels: {
+                    usePointStyle: true,
+                    padding: cfg.legendPad,
+                    font: { size: cfg.legendFont },
+                    boxWidth: cfg.legendFont,
+                    filter: function(item) {
+                        return item.text.charAt(0) !== '_';
+                    }
+                }
+            },
+            tooltip: {
+                backgroundColor: 'rgba(15,23,42,0.92)',
+                titleFont: { size: cfg.tooltipTitle, weight: '600' },
+                bodyFont: { size: cfg.tooltipBody },
+                padding: cfg.tooltipPad,
+                cornerRadius: 8,
+                callbacks: {
+                    label: function(context) {
+                        var p = context.raw;
+                        return context.dataset.label + ': ' +
+                               p.x.toFixed(1) + ' °C, ' +
+                               p.y.toFixed(4) + ' кПа';
+                    }
+                }
+            }
+        },
+        scales: {
+            x: {
+                title: {
+                    display: cfg.showAxisTitleX,
+                    text: 'Температура, °C',
+                    font: { size: cfg.titleFont, weight: '600' },
+                    color: '#374151',
+                    padding: { top: 4, bottom: 0 }
+                },
+                min: -100,
+                max: 200,
+                ticks: {
+                    stepSize: cfg.stepX,
+                    font: { size: cfg.tickFont },
+                    color: '#6b7280',
+                    maxRotation: 0,
+                    autoSkip: true,
+                    autoSkipPadding: 8
+                },
+                grid: { color: 'rgba(0,0,0,0.05)' }
+            },
+            y: {
+                title: {
+                    display: cfg.showAxisTitleY,
+                    text: 'Давление, кПа',
+                    font: { size: cfg.titleFont, weight: '600' },
+                    color: '#374151',
+                    padding: { top: 0, bottom: 4 }
+                },
+                min: 0,
+                max: yMax,
+                ticks: {
+                    font: { size: cfg.tickFont },
+                    color: '#6b7280',
+                    callback: function(v) { return v.toFixed(1); },
+                    maxTicksLimit: 8
+                },
+                grid: { color: 'rgba(0,0,0,0.05)' }
+            }
+        }
+    };
+
+    /* ── Обновить или создать ── */
+    if (psyChart) {
+        psyChart.data.datasets = datasets;
+        psyChart.options = chartOptions;
+        psyChart.update();
+        return;
+    }
+
+    var ctx = document.getElementById('psyChart');
+    if (!ctx) return;
+
+    psyChart = new Chart(ctx, {
+        type: 'scatter',
+        data: { datasets: datasets },
+        options: chartOptions
+    });
+}
+
 /* ══════════════════════════════════════════════════════════
    ЗАПУСК
 ══════════════════════════════════════════════════════════ */
@@ -594,4 +897,5 @@ document.addEventListener("DOMContentLoaded", function() {
     initHighlight();
     initPrecision();
     render();
+    
 });
