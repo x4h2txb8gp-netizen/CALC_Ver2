@@ -82,7 +82,7 @@
         <div class="in-unc">
           <input id="prc" type="number" step="any" value="0" min="0"/>
         </div>
-        <div class="in-unit">
+        <div class="in-unit_2">
           <select id="pru">
             <option value="kPa" selected>кПа</option>
             <option value="mbar">мбар</option>
@@ -97,7 +97,8 @@
     <div class="sep-blue"></div>
     <div id="msg" class="msgbox"></div>
 
-   <div class="out-section" id="out-section">
+    
+    <div class="out-section" id="out-section">
 
   <div class="out-row out-row--hdr">
     <div class="col-h">ПАРАМЕТР</div>
@@ -106,69 +107,79 @@
     <div class="col-h">ЕД. ИЗМ.</div>
   </div>
 
-  <div class="out-row" data-k="RH">
-    <div class="out-name">Относительная влажность, RH</div>
+  <div class="out-row" data-k="RH" data-short="RH">
+    <div class="out-name">Относительная влажность</div>
     <div class="out-val"><span class="oval" id="o_RH">—</span></div>
     <div class="out-unc"><span class="ounc" id="u_RH"></span></div>
     <div class="out-unit">%</div>
   </div>
 
-  <div class="out-row" data-k="Td">
-    <div class="out-name">Температура точки росы, T<sub>d</sub></div>
+  <div class="out-row" data-k="Td" data-short="Td">
+    <div class="out-name">Температура точки росы</div>
     <div class="out-val"><span class="oval" id="o_Td">—</span></div>
     <div class="out-unc"><span class="ounc" id="u_Td"></span></div>
     <div class="out-unit">°С</div>
   </div>
 
-  <div class="out-row" data-k="Tf">
-    <div class="out-name">Точка росы/инея, T<sub>f</sub></div>
+  <div class="out-row" data-k="Tf" data-short="Tf">
+    <div class="out-name">Точка росы / инея</div>
     <div class="out-val"><span class="oval" id="o_Tf">—</span></div>
     <div class="out-unc"><span class="ounc" id="u_Tf"></span></div>
     <div class="out-unit">°С</div>
   </div>
 
-  <div class="out-row" data-k="Av">
-    <div class="out-name">Абсолютная влажность, ρ<sub>v</sub></div>
+  <div class="out-row" data-k="Av" data-short="ρv">
+    <div class="out-name">Абсолютная влажность</div>
     <div class="out-val"><span class="oval" id="o_Av">—</span></div>
     <div class="out-unc"><span class="ounc" id="u_Av"></span></div>
     <div class="out-unit">г/м³</div>
   </div>
 
-  <div class="out-row" data-k="W">
-    <div class="out-name">Влагосодержание, W</div>
+  <div class="out-row" data-k="W" data-short="W">
+    <div class="out-name">Влагосодержание</div>
     <div class="out-val"><span class="oval" id="o_W">—</span></div>
     <div class="out-unc"><span class="ounc" id="u_W"></span></div>
     <div class="out-unit">г/кг</div>
   </div>
 
-  <div class="out-row" data-k="es">
-    <div class="out-name">Давление насыщ. пара, e<sub>s</sub></div>
+  <div class="out-row" data-k="es" data-short="es">
+    <div class="out-name">Давление насыщенного пара</div>
     <div class="out-val"><span class="oval" id="o_es">—</span></div>
     <div class="out-unc"><span class="ounc" id="u_es"></span></div>
-    <div class="out-unit"  id="unit_es">мбар</div>
+    <div class="out-unit" id="unit_es">мбар</div>
   </div>
 
-  <div class="out-row" data-k="e">
-    <div class="out-name">Парциальное давление пара, e</div>
+  <div class="out-row" data-k="e" data-short="e">
+    <div class="out-name">Парциальное давление пара</div>
     <div class="out-val"><span class="oval" id="o_e">—</span></div>
     <div class="out-unc"><span class="ounc" id="u_e"></span></div>
     <div class="out-unit" id="unit_e">мбар</div>
   </div>
 
-  <div class="out-row" data-k="Tw">
-    <div class="out-name">Темп. влажного термометра, T<sub>w</sub></div>
+  <div class="out-row" data-k="Tw" data-short="Tw">
+    <div class="out-name">Температура влажного термометра</div>
     <div class="out-val"><span class="oval" id="o_Tw">—</span></div>
     <div class="out-unc"><span class="ounc" id="u_Tw"></span></div>
     <div class="out-unit">°С</div>
   </div>
 
-  <div class="out-row" data-k="H">
-    <div class="out-name">Энтальпия, H</div>
+  <div class="out-row" data-k="H" data-short="H">
+    <div class="out-name">Энтальпия</div>
     <div class="out-val"><span class="oval" id="o_H">—</span></div>
     <div class="out-unc"><span class="ounc" id="u_H"></span></div>
     <div class="out-unit">кДж/кг</div>
   </div>
+
+  <div class="chart-wrap">
+  <h3 class="chart-title">Кривая насыщения водяного пара</h3>
+  <div class="chart-box">
+    <canvas id="psyChart"></canvas>
+  </div>
 </div>
+
+</div>
+   
+
 
     <div class="foot">
       <p><b>Вода (0...200 °С):</b> Hardy (1998) ITS-90, погрешность &lt;0.005 мбар</p>
@@ -180,8 +191,12 @@
     </div>
 
   </div>
-</div>
 
+
+
+
+</div>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
 <script src="script.js"></script>
 </body>
 </html>
