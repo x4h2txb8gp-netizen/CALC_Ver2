@@ -214,10 +214,10 @@ body {
 /* Grid — desktop */
 .in-row {
   display: grid;
-  grid-template-columns: 260px 130px 30px 130px 80px;
+  grid-template-columns: 280px 130px 30px 140px 80px;
   gap: 12px;
   align-items: center;
-  padding: 8px 0;
+  padding: 5px 0;
 }
 
 .in-row--hdr {
@@ -303,10 +303,10 @@ body {
 
 .out-row {
   display: grid;
-  grid-template-columns: 250px 182px 145px 80px;
+  grid-template-columns: 280px 170px 155px 80px;
   gap: 12px;
   align-items: center;
-  padding: 10px 0;
+  padding: 5px 0;
   border-bottom: 1px solid #f3f4f6;
   transition: background 0.15s, border-color 0.15s;
 }
@@ -409,6 +409,190 @@ body {
 
 .foot b { color: #4b5563; font-weight: 600; }
 
+
+
+/* ── Chart ── */
+.chart-wrap {
+  margin-top: 24px;
+  padding-top: 20px;
+  border-top: 1px solid #e5e7eb;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.chart-title {
+  font-size: 15px;
+  font-weight: 700;
+  color: #1e3a5f;
+  margin: 0 0 12px;
+  text-align: center;
+}
+
+.chart-box {
+  width: 100%;
+  max-width: 640px;
+  position: relative;
+}
+
+/* ================================
+   CUSTOM DROPDOWN — параметр
+   ================================ */
+.cdd {
+  position: relative;
+  width: 100%;
+}
+
+.cdd-trigger {
+  display: grid;
+  grid-template-columns: 36px 1fr 16px;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  height: 48px;
+  padding: 0 12px;
+  background: #fff;
+  border: 1px solid #d1d5db;
+  border-radius: 10px;
+  cursor: pointer;
+  text-align: left;
+  font-family: inherit;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+.cdd-trigger:hover {
+  border-color: #9ca3af;
+}
+
+.cdd.open .cdd-trigger {
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59,130,246,0.12);
+}
+
+.cdd-code {
+  font-weight: 700;
+  font-size: 15px;
+  color: #0f172a;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.cdd-desc {
+  font-size: 14px;
+  font-weight: 500;
+  color: #475569;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cdd-caret {
+  font-size: 12px;
+  color: #9ca3af;
+  transition: transform 0.15s;
+  text-align: center;
+}
+
+.cdd.open .cdd-caret {
+  transform: rotate(180deg);
+}
+
+.cdd-menu {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  margin: 0;
+  padding: 4px;
+  background: #fff;
+  border: 1px solid #d1d5db;
+  border-radius: 10px;
+  box-shadow: 0 8px 24px rgba(15,23,42,0.12);
+  list-style: none;
+  max-height: 320px;
+  overflow-y: auto;
+  z-index: 200;
+  display: none;
+}
+
+.cdd.open .cdd-menu {
+  display: block;
+}
+
+.cdd-menu li {
+  display: grid;
+  grid-template-columns: 36px 1fr;
+  align-items: center;
+  gap: 6px;
+  padding: 9px 10px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background 0.1s;
+}
+
+.cdd-menu li:hover {
+  background: #f1f5f9;
+}
+
+.cdd-menu li.selected {
+  background: #2563eb;
+}
+
+.cdd-menu li.selected .cdd-code,
+.cdd-menu li.selected .cdd-desc {
+  color: #fff;
+}
+
+.cdd-menu li .cdd-code {
+  font-weight: 700;
+  font-size: 15px;
+  color: #0f172a;
+}
+
+.cdd-menu li .cdd-desc {
+  font-size: 14px;
+  font-weight: 500;
+  color: #475569;
+}
+
+/* ── Unit dropdown modifier ── */
+.cdd--unit {
+  width: auto;
+  min-width: 80px;
+}
+
+.cdd--unit .cdd-trigger {
+  grid-template-columns: 1fr 14px;
+  height: 48px;
+  padding: 0 10px;
+  gap: 4px;
+}
+
+.cdd--unit .cdd-label {
+  font-size: 15px;
+  font-weight: 500;
+  color: #1f2937;
+  white-space: nowrap;
+}
+
+.cdd--unit .cdd-menu {
+  min-width: 130px;
+  right: 0;
+  left: auto;
+}
+
+.cdd--unit .cdd-menu li {
+  display: block;
+  padding: 9px 12px;
+  font-size: 14px;
+  font-weight: 500;
+  color: #1f2937;
+}
+
+.cdd--unit .cdd-menu li.selected {
+  color: #fff;
+}
+
 /* ================================================================
    TABLET  (701 — 1024 px)
    ================================================================ */
@@ -510,6 +694,20 @@ body {
   }
 
   .foot { gap: 4px 24px; }
+
+
+
+    .cdd-trigger {
+    height: auto;
+    padding: 10px 12px;
+  }
+
+    .chart-box {
+    max-width: 100%;
+  }
+  .chart-title {
+    font-size: 14px;
+  }
 }
 
 /* ================================================================
@@ -524,6 +722,8 @@ body {
     padding: 20px 16px 16px;
     border-radius: 14px 14px 0 0;
   }
+
+
 
   .hdr h1 { font-size: 17px; }
   .hdr > p { font-size: 13px; margin-bottom: 12px; }
@@ -606,7 +806,7 @@ body {
   }
 
   .in-val::before {
-    content: "Знач.";
+    content: "Значение";
     display: block;
     font-size: 10px;
     font-weight: 700;
@@ -617,7 +817,7 @@ body {
   }
 
   .in-unc::before {
-    content: "Погр.";
+    content: "Погрешность";
     display: block;
     font-size: 10px;
     font-weight: 700;
@@ -645,10 +845,13 @@ body {
   .msgbox.err, .msgbox.warn { padding: 10px 12px; border-radius: 8px; }
 
   /* ── Output: карточки в 2 строки ── */
-  .out-row--hdr { display: none; }
+  .out-row--hdr{
+    display: none;
+
+  }
 
   .out-row {
-    display: grid;
+    
     grid-template-columns: auto auto 1fr auto;
     grid-template-areas:
       "lbl val unit unc"
@@ -734,12 +937,42 @@ body {
     margin-top: 18px;
     padding-top: 14px;
   }
+
+
+    .cdd-trigger {
+    height: 44px;
+    padding: 0 10px;
+    font-size: 14px;
+  }
+  .cdd-code { font-size: 14px; }
+  .cdd-desc { font-size: 13px; }
+  .cdd-menu li { padding: 10px 10px; }
+  .cdd-menu li .cdd-code { font-size: 14px; }
+  .cdd-menu li .cdd-desc { font-size: 13px; }
+
+
+    .chart-wrap {
+    margin-top: 16px;
+    padding-top: 14px;
+  }
+  .chart-box {
+    max-width: 100%;
+    margin: 0 -4px;          /* чуть шире card-padding */
+  }
+  .chart-title {
+    font-size: 13px;
+    margin-bottom: 8px;
+  }
+
+    .cdd--unit .cdd-trigger { height: 44px; }
+  .cdd--unit .cdd-label { font-size: 14px; }
+  .cdd--unit .cdd-menu li { font-size: 13px; }
 }
 
 /* ================================================================
    TINY PHONE  (≤ 380 px)
    ================================================================ */
-@media (max-width: 380px) {
+@media (max-width: 400px) {
 
   .hdr h1 { font-size: 15px; }
   .hdr > p { font-size: 12px; }
@@ -763,67 +996,28 @@ body {
     display: none;
   }
 
+    .cdd-trigger { height: 40px; }
+  .cdd-code { font-size: 13px; }
+  .cdd-desc { font-size: 12px; }
+  .cdd-menu li .cdd-code { font-size: 13px; }
+  .cdd-menu li .cdd-desc { font-size: 12px; }
+
   .out-row::before { font-size: 13px; }
   .oval { padding: 4px 8px; font-size: 13px; }
   .ounc { padding: 3px 6px; font-size: 11px; }
   .out-unit { font-size: 12px; }
   .out-name { font-size: 11px; }
-}
 
-/* ── Chart ── */
-.chart-wrap {
-  margin-top: 24px;
-  padding-top: 20px;
-  border-top: 1px solid #e5e7eb;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-}
 
-.chart-title {
-  font-size: 15px;
-  font-weight: 700;
-  color: #1e3a5f;
-  margin: 0 0 12px;
-  text-align: center;
-}
-
-.chart-box {
-  width: 100%;
-  max-width: 640px;
-  position: relative;
-}
-
-@media (max-width: 1024px) and (min-width: 701px) {
-  .chart-box {
-    max-width: 100%;
-  }
-  .chart-title {
-    font-size: 14px;
-  }
-}
-
-@media (max-width: 700px) {
-  .chart-wrap {
-    margin-top: 16px;
-    padding-top: 14px;
-  }
-  .chart-box {
-    max-width: 100%;
-    margin: 0 -4px;          /* чуть шире card-padding */
-  }
-  .chart-title {
-    font-size: 13px;
-    margin-bottom: 8px;
-  }
-}
-
-@media (max-width: 380px) {
-  .chart-wrap {
+    .chart-wrap {
     margin-top: 12px;
     padding-top: 10px;
   }
   .chart-title {
     font-size: 12px;
   }
+
+    .cdd--unit .cdd-trigger { height: 40px; }
+  .cdd--unit .cdd-label { font-size: 13px; }
 }
+
