@@ -903,20 +903,25 @@ function updatePsyChart(T, res) {
     var yMax = Math.ceil(esKpa * 1.4);
     if (yMax < 1) yMax = 1;
 
-// Вычисляем адаптивный максимум для оси X (только по точкам, без кривой насыщения)
-var xMax = -100;
-datasets.forEach(function(ds) {
-    // Пропускаем кривую насыщения
-    if (ds.label === 'Кривая насыщения es(T)') return;
-    
-    if (ds.data && Array.isArray(ds.data)) {
-        ds.data.forEach(function(p) {
-            if (p.x > xMax) xMax = p.x;
-        });
-    }
-});
-xMax = Math.ceil(xMax + 30);
-if (xMax < 50) xMax = 50;
+
+
+// ★ Вычисляем адаптивные границы оси X ★
+var userMin = T;  // самая холодная точка — текущая температура
+if (TdVal !== null) userMin = Math.min(userMin, TdVal);  // точка росы может быть холоднее
+
+var xMin = Math.floor(userMin - 30);  // левая граница: на 30 меньше самой холодной точки
+var xMax = Math.ceil(userMin + 30);   // правая граница: на 30 больше самой тёплой (симметрично)
+
+// Не даём графику сжаться слишком сильно
+if (xMax - xMin < 60) {
+    var center = (xMin + xMax) / 2;
+    xMin = center - 30;
+    xMax = center + 30;
+}
+
+
+
+
 
     var chartOptions = {
         responsive: true,
@@ -965,7 +970,7 @@ if (xMax < 50) xMax = 50;
                     color: '#374151',
                     padding: { top: 4, bottom: 0 }
                 },
-                min: -100,
+                min: xMin,
                 max: xMax,
                 ticks: {
                     stepSize: cfg.stepX,
@@ -1016,14 +1021,158 @@ if (xMax < 50) xMax = 50;
     });
 }
 
+
+/* ══════════════════════════════════════════════════════════
+   УНИВЕРСАЛЬНЫЕ КАСТОМНЫЕ ДРОПДАУНЫ (.cdd)
+══════════════════════════════════════════════════════════ */
+
+function initCustomDropdowns() {
+    var dropdowns = document.querySelectorAll(".cdd");
+    for (var d = 0; d < dropdowns.length; d++) {
+        initSingleCdd(dropdowns[d]);
+    }
+
+    document.addEventListener("click", function() {
+        var all = document.querySelectorAll(".cdd.open");
+        for (var j = 0; j < all.length; j++) all[j].classList.remove("open");
+    });
+}
+
+function initSingleCdd(dd) {
+    var trigger  = dd.querySelector(".cdd-trigger");
+    var menu     = dd.querySelector(".cdd-menu");
+    var hidden   = dd.querySelector('input[type="hidden"]');
+    var items    = menu.querySelectorAll("li");
+    var focusIdx = -1;
+
+    /* Тип триггера: двухколоночный (code+desc) или простой (label) */
+    var tCode  = trigger.querySelector(".cdd-code");
+    var tDesc  = trigger.querySelector(".cdd-desc");
+    var tLabel = trigger.querySelector(".cdd-label");
+
+    /* ── Открыть / закрыть ── */
+    trigger.addEventListener("click", function(e) {
+        e.stopPropagation();
+        var wasOpen = dd.classList.contains("open");
+        closeOtherCdd(dd);
+        if (!wasOpen) {
+            dd.classList.add("open");
+            focusIdx = selectedIdx();
+            scrollTo(focusIdx);
+        } else {
+            dd.classList.remove("open");
+        }
+    });
+
+    /* ── Выбор по клику ── */
+    for (var i = 0; i < items.length; i++) {
+        (function(li) {
+            li.addEventListener("click", function(e) {
+                e.stopPropagation();
+                pick(li);
+            });
+        })(items[i]);
+    }
+
+    /* ── Клавиатура ── */
+    trigger.addEventListener("keydown", function(e) {
+        if (e.key === "Enter" || e.key === " " || e.key === "ArrowDown") {
+            e.preventDefault();
+            if (!dd.classList.contains("open")) {
+                dd.classList.add("open");
+                focusIdx = selectedIdx();
+                scrollTo(focusIdx);
+            }
+        }
+    });
+
+    dd.addEventListener("keydown", function(e) {
+        if (!dd.classList.contains("open")) return;
+        if (e.key === "ArrowDown") {
+            e.preventDefault();
+            focusIdx = Math.min(focusIdx + 1, items.length - 1);
+            highlight(focusIdx); scrollTo(focusIdx);
+        } else if (e.key === "ArrowUp") {
+            e.preventDefault();
+            focusIdx = Math.max(focusIdx - 1, 0);
+            highlight(focusIdx); scrollTo(focusIdx);
+        } else if (e.key === "Enter") {
+            e.preventDefault();
+            if (focusIdx >= 0) pick(items[focusIdx]);
+        } else if (e.key === "Escape" || e.key === "Tab") {
+            dd.classList.remove("open");
+        }
+    });
+
+    /* ── Выбор элемента ── */
+    function pick(li) {
+        for (var j = 0; j < items.length; j++) items[j].classList.remove("selected");
+        li.classList.add("selected");
+
+        hidden.value = li.dataset.value;
+
+        /* Обновить текст триггера */
+        if (tCode && tDesc) {
+            var c = li.querySelector(".cdd-code");
+            var d = li.querySelector(".cdd-desc");
+            tCode.textContent = c ? c.textContent : "";
+            tDesc.textContent = d ? d.textContent : "";
+        } else if (tLabel) {
+            tLabel.textContent = li.textContent;
+        }
+
+        dd.classList.remove("open");
+        trigger.focus();
+
+        /* Dispatch change на hidden input */
+        var evt;
+        if (typeof Event === "function") {
+            evt = new Event("change", {bubbles: true});
+        } else {
+            evt = document.createEvent("Event");
+            evt.initEvent("change", true, true);
+        }
+        hidden.dispatchEvent(evt);
+    }
+
+    /* ── Утилиты ── */
+    function closeOtherCdd(except) {
+        var all = document.querySelectorAll(".cdd.open");
+        for (var j = 0; j < all.length; j++) {
+            if (all[j] !== except) all[j].classList.remove("open");
+        }
+    }
+
+    function selectedIdx() {
+        for (var j = 0; j < items.length; j++) {
+            if (items[j].classList.contains("selected")) return j;
+        }
+        return 0;
+    }
+
+    function highlight(idx) {
+        for (var j = 0; j < items.length; j++) {
+            items[j].style.outline       = (j === idx) ? "2px solid #3b82f6" : "";
+            items[j].style.outlineOffset = (j === idx) ? "-2px" : "";
+        }
+    }
+
+    function scrollTo(idx) {
+        if (idx >= 0 && items[idx]) {
+            items[idx].scrollIntoView({block: "nearest"});
+        }
+    }
+}
+
+
 /* ══════════════════════════════════════════════════════════
    ЗАПУСК
 ══════════════════════════════════════════════════════════ */
 
 document.addEventListener("DOMContentLoaded", function() {
+    initCustomDropdowns();  
     initEvents();
     initHighlight();
     initPrecision();
     render();
-    
 });
