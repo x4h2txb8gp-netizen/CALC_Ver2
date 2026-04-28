@@ -40,17 +40,27 @@
       </div>
 
       <div class="in-row">
-        <div class="in-label">
-          <select id="pp">
-            <option value="RH">RH, Относительная влажность </option>
-            <option value="Td">Td, Темп. точки росы</option>
-            <option value="Tf">Tf, Точка росы/инея</option>
-            <option value="Av">ρv, Абсолютная влажность</option>
-            <option value="W">W, Влагосодержание</option>
-            <option value="e">e, Парц. давление</option>
-            <option value="Tw">Tw, Темп. влажн. терм.</option>
-          </select>
-        </div>
+
+    <div class="in-label">
+    <div class="cdd" id="cdd-param">
+    <button class="cdd-trigger" type="button">
+      <span class="cdd-code">RH</span>
+      <span class="cdd-desc">Относительная влажность</span>
+      <span class="cdd-caret">▾</span>
+    </button>
+    <ul class="cdd-menu" role="listbox">
+      <li data-value="RH" class="selected"><span class="cdd-code">RH</span><span class="cdd-desc">Отн. влажность</span></li>
+      <li data-value="Td"><span class="cdd-code">Td</span><span class="cdd-desc">Темп. точки росы</span></li>
+      <li data-value="Tf"><span class="cdd-code">Tf</span><span class="cdd-desc">Точка росы/инея</span></li>
+      <li data-value="Av"><span class="cdd-code">ρv</span><span class="cdd-desc">Абсолютная влажность</span></li>
+      <li data-value="W"><span class="cdd-code">W</span><span class="cdd-desc">Влагосодержание</span></li>
+      <li data-value="e"><span class="cdd-code">e</span><span class="cdd-desc">Парц. давление</span></li>
+      <li data-value="Tw"><span class="cdd-code">Tw</span><span class="cdd-desc">Темп. влажн. терм.</span></li>
+    </ul>
+    <input type="hidden" id="pp" value="RH">
+  </div>
+</div>
+
         <div class="in-val">
           <input id="pv" type="number" step="any" value="60"/>
         </div>
@@ -62,7 +72,7 @@
       </div>
 
       <div class="in-row">
-        <div class="in-label"><span>Температура воздуха, T</span></div>
+        <div class="in-label"><span>T, Температура воздуха</span></div>
         <div class="in-val">
           <input id="tv" type="number" step="any" value="25"/>
         </div>
@@ -74,7 +84,7 @@
       </div>
 
       <div class="in-row">
-        <div class="in-label"><span>Атм. давление, P</span></div>
+        <div class="in-label"><span>P, Атм. давление</span></div>
         <div class="in-val">
           <input id="prv" type="number" step="any" value="101.325"/>
         </div>
@@ -83,14 +93,21 @@
           <input id="prc" type="number" step="any" value="0" min="0"/>
         </div>
         <div class="in-unit_2">
-          <select id="pru">
-            <option value="kPa" selected>кПа</option>
-            <option value="mbar">мбар</option>
-            <option value="mmHg">мм рт.ст.</option>
-            <option value="atm">атм</option>
-            <option value="kgcm2">кг/см²</option>
-          </select>
-        </div>
+           <div class="cdd cdd--unit">
+             <button class="cdd-trigger" type="button">
+                <span class="cdd-label">кПа</span>
+                <span class="cdd-caret">▾</span>
+              </button>
+      <ul class="cdd-menu" role="listbox">
+      <li data-value="kPa" class="selected">кПа</li>
+      <li data-value="mbar">мбар</li>
+      <li data-value="mmHg">мм рт.ст.</li>
+      <li data-value="atm">атм</li>
+      <li data-value="kgcm2">кг/см²</li>
+    </ul>
+    <input type="hidden" id="pru" value="kPa">
+  </div>
+</div>
       </div>
     </div>
 
@@ -102,8 +119,8 @@
 
   <div class="out-row out-row--hdr">
     <div class="col-h">ПАРАМЕТР</div>
-    <div class="col-h">ЗНАЧЕНИЕ</div>
-    <div class="col-h">ПОГРЕШНОСТЬ</div>
+    <div class="col-h">РЕЗУЛЬТАТ</div>
+    <div class="col-h">РАСЧЕТНАЯ</div>
     <div class="col-h">ЕД. ИЗМ.</div>
   </div>
 
