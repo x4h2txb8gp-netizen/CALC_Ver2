@@ -134,6 +134,72 @@ function desIce(Tc) {
 function esF(Tc)  { return esW(Tc); }
 function desF(Tc) { return desW(Tc); }
 
+
+
+
+
+/* ══════════════════════════════════════════════════════════
+   ФАКТОР УСИЛЕНИЯ (ENHANCEMENT FACTOR) f(T, P)
+   ─────────────────────────────────────────────────────────
+   Hardy (1998), ITS-90. Учитывает неидеальность влажного
+   воздуха: реальное равновесное давление пара в воздухе
+   немного выше, чем над чистой водой:
+       e_w*(T,P) = f(T,P) · es(T)
+
+   ln(f) = α(t)·(1 - es/P) + β(t)·(P/es - 1)
+     α(t) = A0 + A1·t + A2·t² + A3·t³
+     β(t) = exp(B0 + B1·t + B2·t² + B3·t³)
+   t — температура в °C, es и P — в одинаковых единицах.
+
+   При нормальных условиях f ≈ 1.004 (поправка ~0.4 %).
+══════════════════════════════════════════════════════════ */
+
+/* Коэффициенты Hardy 1998 для воды (t в °C) */
+var FA = [3.53624e-4, 2.9328363e-5, 2.6168979e-7, 8.5813609e-9];
+var FB = [-1.07588e1, 6.3268134e-2, -2.5368934e-4, 6.3405286e-7];
+
+/* Коэффициенты Hardy 1998 для льда */
+var FA_ICE = [3.64449e-4, 2.9367585e-5, 4.8874766e-7, 4.3669918e-9];
+var FB_ICE = [-1.0728876e1, 7.6215115e-2, -1.7540413e-4, 2.1689756e-6];
+
+/* Универсальный расчёт f */
+function _enhFactor(Tc, Pmbar, esmbar, A, B) {
+    if (!isFinite(Pmbar) || Pmbar <= 0 || esmbar <= 0) return 1;
+    var t = Tc;
+    var alpha = A[0] + t*(A[1] + t*(A[2] + t*A[3]));
+    var betaExp = B[0] + t*(B[1] + t*(B[2] + t*B[3]));
+    var beta = Math.exp(betaExp);
+    var lnf = alpha * (1 - esmbar / Pmbar) + beta * (Pmbar / esmbar - 1);
+    return Math.exp(lnf);
+}
+
+/* f над водой */
+function fWater(Tc, Pmbar) {
+    return _enhFactor(Tc, Pmbar, esW(Tc), FA, FB);
+}
+
+/* f надо льдом */
+function fIce(Tc, Pmbar) {
+    return _enhFactor(Tc, Pmbar, esIce(Tc), FA_ICE, FB_ICE);
+}
+
+/* Эффективное давление насыщения в воздухе */
+function esEffW(Tc, Pmbar)   { return fWater(Tc, Pmbar) * esW(Tc); }
+function esEffIce(Tc, Pmbar) { return fIce(Tc, Pmbar)   * esIce(Tc); }
+
+/* Производная esEff по T (для Ньютона в invertES).
+   Численная — точности достаточно, df/dT мало. */
+function desEffW(Tc, Pmbar) {
+    var h = 1e-4;
+    return (esEffW(Tc + h, Pmbar) - esEffW(Tc - h, Pmbar)) / (2 * h);
+}
+function desEffIce(Tc, Pmbar) {
+    var h = 1e-4;
+    return (esEffIce(Tc + h, Pmbar) - esEffIce(Tc - h, Pmbar)) / (2 * h);
+}
+
+
+
 /* ══════════════════════════════════════════════════════════
    ОБРАТНАЯ ЗАДАЧА: e → T
 ══════════════════════════════════════════════════════════ */
@@ -164,14 +230,24 @@ function invertES(eTarget, esFn, desFn, lo, hi) {
     return T;
 }
 
-function TdFromE(e) {
-    return invertES(e, esW, desW, -80, 200);
+function TdFromE(e, Pmbar) {
+    return invertES(
+        e,
+        function(T) { return esEffW(T, Pmbar); },
+        function(T) { return desEffW(T, Pmbar); },
+        -80, 200
+    );
 }
 
-function TfFromE(e) {
-    var eMax = esIce(-0.01);
+function TfFromE(e, Pmbar) {
+    var eMax = esEffIce(-0.01, Pmbar);
     if (e > eMax) return NaN;
-    return invertES(e, esIce, desIce, -100, -0.01);
+    return invertES(
+        e,
+        function(T) { return esEffIce(T, Pmbar); },
+        function(T) { return desEffIce(T, Pmbar); },
+        -100, -0.01
+    );
 }
 
 /* ══════════════════════════════════════════════════════════
@@ -194,20 +270,36 @@ function enthalpy(Tc, Wgkg) {
 
 function wetBulb(Tc, e, P) {
     var A = 0.000662;
-    var Tw = TdFromE(e);
+    var Tw = TdFromE(e, P);
     if (!isFinite(Tw)) Tw = Tc - 5;
     if (Tw > Tc) Tw = Tc;
 
     var i, F, dF, dt;
     for (i = 0; i < 80; i++) {
-        F  = esF(Tw) - A * P * (Tc - Tw) - e;
-        dF = desF(Tw) + A * P;
+        F  = esEffW(Tw, P) - A * P * (Tc - Tw) - e;
+        dF = desEffW(Tw, P) + A * P;
         if (Math.abs(dF) < 1e-30) break;
         dt = F / dF;
         Tw -= dt;
         if (Math.abs(dt) < 1e-9) break;
     }
     return Tw;
+}
+
+function primaryToE(key, val, T, P) {
+    var A;
+    switch (key) {
+        case "RH": return esEffW(T, P) * val / 100;
+        case "Td": return esEffW(val, P);
+        case "Tf": return esEffIce(val, P);
+        case "Av": return val * (T + 273.15) / 216.679;
+        case "W":  return val * P / (621.9907 + val);
+        case "e":  return val;
+        case "Tw":
+            A = 0.000662;
+            return esEffW(val, P) - A * P * (T - val);
+        default:   return NaN;
+    }
 }
 
 /* ══════════════════════════════════════════════════════════
@@ -217,15 +309,15 @@ function wetBulb(Tc, e, P) {
 function primaryToE(key, val, T, P) {
     var A;
     switch (key) {
-        case "RH": return esF(T) * val / 100;
-        case "Td": return esW(val);
-        case "Tf": return esIce(val);
+        case "RH": return esEffW(T, P) * val / 100;
+        case "Td": return esEffW(val, P);
+        case "Tf": return esEffIce(val, P);
         case "Av": return val * (T + 273.15) / 216.679;
         case "W":  return val * P / (621.9907 + val);
         case "e":  return val;
         case "Tw":
             A = 0.000662;
-            return esF(val) - A * P * (T - val);
+            return esEffW(val, P) - A * P * (T - val);
         default:   return NaN;
     }
 }
@@ -238,21 +330,21 @@ function calcAll(key, val, T, P) {
     var e = primaryToE(key, val, T, P);
     if (!isFinite(e) || e < 0) return null;
 
-    var esVal = esF(T);
-    var RH    = e / esVal * 100;
-    var Td    = TdFromE(e);
-    var Tf    = TfFromE(e);
-    var Av    = absHum(e, T);
-    var W     = mixRatio(e, P);
-    var Tw    = wetBulb(T, e, P);
-    var H     = isFinite(W) ? enthalpy(T, W) : NaN;
+    var esVal   = esF(T);                  /* чистое es(T) — для вывода */
+    var esEff   = esEffW(T, P);            /* эффективное — для RH */
+    var RH      = e / esEff * 100;
+    var Td      = TdFromE(e, P);
+    var Tf      = TfFromE(e, P);
+    var Av      = absHum(e, T);
+    var W       = mixRatio(e, P);
+    var Tw      = wetBulb(T, e, P);
+    var H       = isFinite(W) ? enthalpy(T, W) : NaN;
 
     return {
         RH: RH, Td: Td, Tf: Tf,
         Av: Av, W: W, es: esVal,
         e: e, Tw: Tw, H: H
     };
-
 }
 
 /* ══════════════════════════════════════════════════════════
@@ -262,6 +354,27 @@ function calcAll(key, val, T, P) {
 ══════════════════════════════════════════════════════════ */
 
 var RKEYS = ["RH", "Td", "Tf", "Av", "W", "es", "e", "Tw", "H"];
+
+
+
+
+['pu', 'tu', 'prc'].forEach(function(id) {
+    var input = document.getElementById(id);
+    if (!input) return;
+    
+    input.setAttribute('maxlength', '3');
+    
+    input.addEventListener('input', function() {
+        var val = this.value.replace(/[^\d.-]/g, '');
+        val = val.replace(/(?!^)-/g, '');
+        val = val.replace(/^(.+?)\.(.*)\./, '$1.$2');
+        if (val.length > 3) val = val.slice(0, 3);
+        this.value = val;
+    });
+});
+
+
+
 
 function calcUnc(key, val, dVal, T, dT, P, dP) {
     var unc = {};
@@ -408,7 +521,7 @@ function render() {
     var dT   = Math.abs(parseFloat($("tu").value) || 0);
     var dP   = getDPmbar();
 
-    var esAtT = esF(T);
+    var esAtT = esEffW(T, P);   /* эффективное для проверки физичности */
 
     if (key === "RH" && val > 100 && esAtT >= P) {
         msg.className = "msgbox warn";
@@ -790,6 +903,21 @@ function updatePsyChart(T, res) {
     var yMax = Math.ceil(esKpa * 1.4);
     if (yMax < 1) yMax = 1;
 
+// Вычисляем адаптивный максимум для оси X (только по точкам, без кривой насыщения)
+var xMax = -100;
+datasets.forEach(function(ds) {
+    // Пропускаем кривую насыщения
+    if (ds.label === 'Кривая насыщения es(T)') return;
+    
+    if (ds.data && Array.isArray(ds.data)) {
+        ds.data.forEach(function(p) {
+            if (p.x > xMax) xMax = p.x;
+        });
+    }
+});
+xMax = Math.ceil(xMax + 30);
+if (xMax < 50) xMax = 50;
+
     var chartOptions = {
         responsive: true,
         maintainAspectRatio: true,
@@ -838,7 +966,7 @@ function updatePsyChart(T, res) {
                     padding: { top: 4, bottom: 0 }
                 },
                 min: -100,
-                max: 200,
+                max: xMax,
                 ticks: {
                     stepSize: cfg.stepX,
                     font: { size: cfg.tickFont },
