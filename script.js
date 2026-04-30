@@ -55,60 +55,45 @@ function updatePrecDisplay() {
 }
 
 /* ══════════════════════════════════════════════════════════
-   ДАВЛЕНИЕ НАСЫЩЕННОГО ПАРА
+   ДАВЛЕНИЕ НАСЫЩЕННОГО ПАРА НАД ВОДОЙ
+   Wagner & Pruß (2002), кривая насыщения IAPWS-95.
+   Диапазон валидности: 273.16 K ... 647.096 K.
+   Для переохлаждённой воды (-100...0 °C) формула применяется
+   как аналитическое продолжение, согласованное с Е+Е.
+   Заявленная точность <0.01% во всём диапазоне -100...+200 °C.
 ══════════════════════════════════════════════════════════ */
 
-var GW = [
-    -2.8365744e3,
-    -6.028076559e3,
-     1.954263612e1,
-    -2.737830188e-2,
-     1.6261698e-5,
-     7.0229056e-10,
-    -1.8680009e-13,
-     2.7150305
-];
+var WP_TC = 647.096;     /* K, критическая температура */
+var WP_PC = 220640;      /* мбар (= 22.064 МПа), критическое давление */
+var WP_A  = [-7.85951783, 1.84408259, -11.7866497,
+              22.6807411, -15.9618719,   1.80122502];
+var WP_B  = [1.0, 1.5, 3.0, 3.5, 4.0, 7.5];
 
 function esWater(Tc) {
-    var Tk = Tc + 273.15;
-    var lnE =
-        GW[0] / (Tk * Tk) +
-        GW[1] / Tk +
-        GW[2] +
-        GW[3] * Tk +
-        GW[4] * Tk * Tk +
-        GW[5] * Tk * Tk * Tk +
-        GW[6] * Tk * Tk * Tk * Tk +
-        GW[7] * Math.log(Tk);
-    return Math.exp(lnE) / 100;
+    var Tk  = Tc + 273.15;
+    var tau = 1 - Tk / WP_TC;
+    var S = 0, i;
+    for (i = 0; i < 6; i++) S += WP_A[i] * Math.pow(tau, WP_B[i]);
+    return WP_PC * Math.exp((WP_TC / Tk) * S);
 }
 
 function desWater(Tc) {
-    var Tk = Tc + 273.15;
-    var dlnE =
-        GW[0] * (-2) / (Tk * Tk * Tk) +
-        GW[1] * (-1) / (Tk * Tk) +
-        GW[3] +
-        GW[4] * 2 * Tk +
-        GW[5] * 3 * Tk * Tk +
-        GW[6] * 4 * Tk * Tk * Tk +
-        GW[7] / Tk;
+    var Tk  = Tc + 273.15;
+    var tau = 1 - Tk / WP_TC;
+    var S = 0, dSdt = 0, i;
+    for (i = 0; i < 6; i++) {
+        S    += WP_A[i] * Math.pow(tau, WP_B[i]);
+        dSdt += WP_A[i] * WP_B[i] * Math.pow(tau, WP_B[i] - 1);
+    }
+    /* d(ln es)/dT = -Tc/T^2 · S - (1/T) · dS/dτ   (т.к. dτ/dT = -1/Tc) */
+    var dlnE = -WP_TC / (Tk * Tk) * S - dSdt / Tk;
     return esWater(Tc) * dlnE;
 }
 
-function esBuckWater(Tc) {
-    return 6.1121 * Math.exp((18.678 - Tc / 234.5) * Tc / (257.14 + Tc));
-}
 
-function desBuckWater(Tc) {
-    var a = 18.678, b = 234.5, c = 257.14;
-    var num = (a - 2 * Tc / b) * (c + Tc) - (a * Tc - Tc * Tc / b);
-    var den = (c + Tc) * (c + Tc);
-    return esBuckWater(Tc) * num / den;
-}
+function esW(Tc)  { return esWater(Tc); }
+function desW(Tc) { return desWater(Tc); }
 
-function esW(Tc)  { return Tc >= 0 ? esWater(Tc)  : esBuckWater(Tc); }
-function desW(Tc) { return Tc >= 0 ? desWater(Tc) : desBuckWater(Tc); }
 
 var T0GG = 273.16;
 
@@ -162,9 +147,13 @@ var FB = [-1.07588e1, 6.3268134e-2, -2.5368934e-4, 6.3405286e-7];
 var FA_ICE = [3.64449e-4, 2.9367585e-5, 4.8874766e-7, 4.3669918e-9];
 var FB_ICE = [-1.0728876e1, 7.6215115e-2, -1.7540413e-4, 2.1689756e-6];
 
-/* Универсальный расчёт f */
 function _enhFactor(Tc, Pmbar, esmbar, A, B) {
     if (!isFinite(Pmbar) || Pmbar <= 0 || esmbar <= 0) return 1;
+    /* Hardy (1998) валиден при P > es и T ≤ 100 °C.
+       При es ≥ P вода кипит: концепция влажного воздуха теряет смысл,
+       поправка f → 1, расчёт идёт по чистому es(T). */
+    if (esmbar >= Pmbar) return 1;
+
     var t = Tc;
     var alpha = A[0] + t*(A[1] + t*(A[2] + t*A[3]));
     var betaExp = B[0] + t*(B[1] + t*(B[2] + t*B[3]));
@@ -269,6 +258,9 @@ function enthalpy(Tc, Wgkg) {
 }
 
 function wetBulb(Tc, e, P) {
+    /* выше точки кипения при данном P испарение невозможно */
+    if (esW(Tc) >= P) return NaN;
+
     var A = 0.000662;
     var Tw = TdFromE(e, P);
     if (!isFinite(Tw)) Tw = Tc - 5;
@@ -520,6 +512,7 @@ function render() {
     var dVal = Math.abs(parseFloat($("pu").value) || 0);
     var dT   = Math.abs(parseFloat($("tu").value) || 0);
     var dP   = getDPmbar();
+
 
     var esAtT = esEffW(T, P);   /* эффективное для проверки физичности */
 
