@@ -354,14 +354,27 @@ var RKEYS = ["RH", "Td", "Tf", "Av", "W", "es", "e", "Tw", "H"];
     var input = document.getElementById(id);
     if (!input) return;
     
-    input.setAttribute('maxlength', '3');
+    input.setAttribute('maxlength', '6');  // увеличил до 6 для "12,345"
     
     input.addEventListener('input', function() {
-        var val = this.value.replace(/[^\d.-]/g, '');
+        // Разрешаем цифры, точку, запятую, минус
+        var val = this.value.replace(/[^\d.,-]/g, '');
+        
+        // Минус только в начале
         val = val.replace(/(?!^)-/g, '');
-        val = val.replace(/^(.+?)\.(.*)\./, '$1.$2');
-        if (val.length > 3) val = val.slice(0, 3);
-        this.value = val;
+        
+        // Только одна точка или запятая
+        var hasDecimal = false;
+        val = val.split('').filter(function(c) {
+            if (c === '.' || c === ',') {
+                if (hasDecimal) return false;
+                hasDecimal = true;
+                return true;
+            }
+            return true;
+        }).join('');
+        
+
     });
 });
 
@@ -449,7 +462,15 @@ function validate() {
         errors.push("Введите значение первичного параметра.");
         $("pv").classList.add("ferr");
     }
-
+    var ppKey = $("pp").value;
+    if (ppKey === "Tf" && isFinite(pv) && (pv > 0 || pv < -100)) {
+        errors.push("Tf может быть от -100°С до 0°С.");
+        $("pv").classList.add("ferr");
+    }
+        if (ppKey === "Tw" && isFinite(pv) && (pv < -10 || pv > 100)) {
+        errors.push("Tw может быть от -10°С до +100°С.");
+        $("pv").classList.add("ferr");
+    }
     return errors;
 }
 
@@ -472,13 +493,11 @@ function setVal(id, v, digits) {
 function setUnc(id, u, digits) {
     var el = $(id);
     if (!el) return;
-    if (isFinite(u) && u > 0) {
-        el.textContent = "\u00B1\u00A0" + u.toFixed(digits).replace(".", ",");
-        el.style.display = "";
-    } else {
-        el.textContent = "";
-        el.style.display = "none";
-    }
+    
+    // Всегда показываем, даже если погрешность = 0
+    var value = isFinite(u) ? u : 0;
+    el.textContent = "\u00B1\u00A0" + value.toFixed(digits).replace(".", ",");
+    el.style.display = "";
 }
 
 function clearResults() {
@@ -528,6 +547,28 @@ function render() {
 
     var res = calcAll(key, val, T, P);
 
+
+        var res = calcAll(key, val, T, P);
+
+    // Специальная диагностика для Tw: e < 0 означает физически 
+    // невозможную пару (T, Tw)
+    if (key === "Tw" && (!res || res.e < 0)) {
+        msg.className = "msgbox warn";
+        msg.innerHTML = 
+            "При T = " + T.toFixed(1) + " °С температура влажного термометра " +
+            "Tw = " + val.toFixed(1) + " °С физически недостижима " +
+            "(требуется отрицательная влажность). Увеличьте Tw или уменьшите T.";
+        clearResults();
+        return;
+    }
+
+    if (!res) {
+        msg.className = "msgbox err";
+        msg.innerHTML = "Невозможно рассчитать параметры. Проверьте значения.";
+        clearResults();
+        return;
+    }
+
     if (!res) {
         msg.className = "msgbox err";
         msg.innerHTML = "Невозможно рассчитать параметры. Проверьте значения.";
@@ -553,6 +594,13 @@ function render() {
         return;
     }
 
+        if (isFinite(res.Tw) && (res.Tw < -10 || res.Tw > 100)) {
+        msg.className = "msgbox warn";
+        msg.innerHTML = "Tw может быть от -10°С до +100°С.";
+        // Не блокируем остальные параметры — гасим только Tw
+        res.Tw = NaN;
+    }
+
     msg.className = "msgbox";
     msg.innerHTML = "";
 
@@ -575,20 +623,13 @@ function render() {
     if ($("unit_e"))  $("unit_e").textContent  = uLabel;
 
     /* ── Погрешности ── */
-    var hasUnc = (dVal > 0 || dT > 0 || dP > 0);
-    if (hasUnc) {
-        var unc = calcUnc(key, val, dVal, T, dT, P, dP);
-        for (j = 0; j < RKEYS.length; j++) {
-            k = RKEYS[j];
-            if (k === "es" || k === "e") {
-                setUnc("u_" + k, convFn(unc[k]), PRECISION);
-            } else {
-                setUnc("u_" + k, unc[k], PRECISION);
-            }
-        }
-    } else {
-        for (j = 0; j < RKEYS.length; j++) {
-            setUnc("u_" + RKEYS[j], 0, PRECISION);
+    var unc = calcUnc(key, val, dVal, T, dT, P, dP);
+    for (j = 0; j < RKEYS.length; j++) {
+        k = RKEYS[j];
+        if (k === "es" || k === "e") {
+            setUnc("u_" + k, convFn(unc[k]), PRECISION);
+        } else {
+            setUnc("u_" + k, unc[k], PRECISION);
         }
     }
 
@@ -893,24 +934,45 @@ function updatePsyChart(T, res) {
         });
     }
 
-    var yMax = Math.ceil(esKpa * 1.4);
-    if (yMax < 1) yMax = 1;
-
-
-
-// ★ Вычисляем адаптивные границы оси X ★
-var userMin = T;  // самая холодная точка — текущая температура
-if (TdVal !== null) userMin = Math.min(userMin, TdVal);  // точка росы может быть холоднее
-
-var xMin = Math.floor(userMin - 30);  // левая граница: на 30 меньше самой холодной точки
-var xMax = Math.ceil(userMin + 30);   // правая граница: на 30 больше самой тёплой (симметрично)
-
-// Не даём графику сжаться слишком сильно
-if (xMax - xMin < 60) {
-    var center = (xMin + xMax) / 2;
-    xMin = center - 30;
-    xMax = center + 30;
+// ★ Bounding box: точки + видимый участок кривой ★
+var xs = [T];
+var ys = [eKpa, esKpa];
+if (TdVal !== null) { 
+    xs.push(TdVal); 
+    ys.push(eKpa); 
 }
+
+var xLo = Math.min.apply(null, xs);
+var xHi = Math.max.apply(null, xs);
+var yHi = Math.max.apply(null, ys);
+
+// Паддинги: 20% диапазона, но не меньше минимума
+var xPad = Math.max((xHi - xLo) * 0.20, 15);
+var yPad = Math.max(yHi * 0.25, 0.2);
+
+// Предварительные границы окна
+var xMin = Math.floor(xLo - xPad);
+var xMax = Math.ceil(xHi + xPad);
+
+// Гарантируем минимальную ширину окна
+var MIN_SPAN = 60;
+if (xMax - xMin < MIN_SPAN) {
+    var cx = (xMin + xMax) / 2;
+    xMin = Math.floor(cx - MIN_SPAN / 2);
+    xMax = Math.ceil(cx + MIN_SPAN / 2);
+}
+
+// ★ НОВОЕ: включаем кривую в расчёт yMax ★
+// Находим максимум es(T) на видимом участке [xMin, xMax]
+var curveYmax = 0;
+for (var ti = Math.max(xMin, -100); ti <= Math.min(xMax, 200); ti += 5) {
+    var esi = esF(ti) / 10;  // кПа
+    if (esi > curveYmax) curveYmax = esi;
+}
+
+// yMax = максимум из (точки + кривая) + паддинг
+var yMax = Math.ceil((Math.max(yHi, curveYmax) + yPad) * 10) / 10;
+if (yMax < 1) yMax = 1;
 
 
 
